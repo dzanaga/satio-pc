@@ -37,7 +37,7 @@ def scl_to_mask(scl_data,
                 max_invalid_ratio=None):
     """
     From a timeseries (t, y, x) dataarray returns a binary mask False for the
-    given mask_values and True elsewhere.
+    given mask_values and True elsewhere (valid pixels).
 
     Parameters:
     -----------
@@ -72,11 +72,12 @@ def scl_to_mask(scl_data,
         ratio of invalid obs after morphological operations
     """
 
+    mask_values = SCL_MASK_VALUES
+    mask = da.isin(scl_data, mask_values)
+
     ts_obs = scl_data != 0
     obs = ts_obs.sum(axis=0)
 
-    mask_values = SCL_MASK_VALUES
-    mask = da.isin(scl_data, mask_values)
     ma_mask = (mask & ts_obs)
     invalid_before = ma_mask.sum(axis=0) / obs
 
@@ -97,5 +98,7 @@ def scl_to_mask(scl_data,
     if max_invalid_ratio is not None:
         max_invalid_mask = invalid_after > max_invalid_ratio
         mask = mask | da.broadcast_to(max_invalid_mask, mask.shape)
+
+    mask = scl_data.copy(data=mask)
 
     return SCLMask(mask, obs, invalid_before, invalid_after)

@@ -26,6 +26,8 @@ setup(
     zip_safe=True,
     install_requires=[
         'boto3',
+        'dask',
+        'dask_image',
         'geopandas',
         'h5netcdf',
         'importlib-resources',
