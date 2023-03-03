@@ -1,3 +1,22 @@
+"""
+SCL mask improvements
+
+by checking the values temporally, we can identify anomalies
+
+for example if only few pixels have a high rate of being flagged as 
+either snow/dark/cloud and the block cover for that category is low,
+then we can assume that this is an outlier.
+
+For example, one river pixel is marked as dark/shadow 90% of the times
+for those observations where the shadow pixels are a small amount that means
+that probably there are no clouds/shadows and the flag can be removed
+
+We can run some outliers detection based on this.
+
+Snow fraction. We should compute the snow fraction over the valid obs (non clouds)
+This can be used for permanent snow detection, and in general can be an interesting
+layer.
+"""
 from dataclasses import dataclass
 
 import dask
@@ -71,6 +90,7 @@ def scl_to_mask(scl_data,
     invalid_after : 2D float array
         ratio of invalid obs after morphological operations
     """
+    scl_data = scl_data.sel(band='SCL')
 
     mask_values = SCL_MASK_VALUES
     mask = da.isin(scl_data, mask_values)
@@ -100,5 +120,6 @@ def scl_to_mask(scl_data,
         mask = mask | da.broadcast_to(max_invalid_mask, mask.shape)
 
     mask = scl_data.copy(data=mask)
+    mask = mask.expand_dims({'band': 'SCL'}, axis=1)
 
     return SCLMask(mask, obs, invalid_before, invalid_after)
