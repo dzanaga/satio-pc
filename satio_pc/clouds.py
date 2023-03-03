@@ -120,6 +120,8 @@ def scl_to_mask(scl_data,
         mask = mask | da.broadcast_to(max_invalid_mask, mask.shape)
 
     mask = scl_data.copy(data=mask)
-    mask = mask.expand_dims({'band': 'SCL'}, axis=1)
+
+    mask = mask.assign_coords(band='SCL')
+    mask = mask.expand_dims('band', axis=1)
 
     return SCLMask(mask, obs, invalid_before, invalid_after)
