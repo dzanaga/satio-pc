@@ -24,7 +24,7 @@ import dask.array as da
 from dask_image.ndmorph import binary_erosion, binary_dilation
 from skimage.morphology import footprints
 
-SCL_MASK_VALUES = [0, 1, 3, 8, 9, 10, 11]
+SCL_MASK_VALUES = [1, 3, 8, 9, 10, 11]
 
 
 @dataclass
@@ -38,7 +38,7 @@ class SCLMask:
     invalid_before
     invalid_after
 
-    Default SCL_MASK_VALUES = [0, 1, 3, 8, 9, 10, 11]
+    Default SCL_MASK_VALUES = [1, 3, 8, 9, 10, 11]
     """
     mask: dask.array.core.Array
     obs: dask.array.core.Array
