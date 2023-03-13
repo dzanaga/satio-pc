@@ -1,8 +1,14 @@
+import atexit
 import tempfile
-import pandas as pd
+import numpy as np
 import xarray as xr
+import dask.array as da
 
-              
+from satio_pc.preprocessing.composite import calculate_moving_composite
+from satio_pc.preprocessing.interpolate import interpolate_ts_linear
+from satio_pc.preprocessing.rescale import rescale_ts
+
+
 def mask_clouds(darr, scl_mask):
     """darr has dims (time, band, y, x),
     mask has dims (time, y, x)"""
@@ -34,10 +40,10 @@ def force_unique_time(darr):
 def harmonize(data):
     """
     Harmonize new Sentinel-2 data to the old baseline.
-    
+
     https://planetarycomputer.microsoft.com/dataset/sentinel-2-l2a#Baseline-Change
     https://github.com/microsoft/PlanetaryComputer/issues/134
-    
+
     Parameters
     ----------
     data: xarray.DataArray
@@ -51,10 +57,10 @@ def harmonize(data):
     """
     baseline = data.coords['s2:processing_baseline'].astype(float)
     baseline_flag = baseline < 4
-    
+
     if all(baseline_flag):
         return data
-    
+
     offset = 1000
     bands = ["B01", "B02", "B03", "B04",
              "B05", "B06", "B07", "B08",
@@ -62,24 +68,27 @@ def harmonize(data):
 
     old = data.isel(time=baseline_flag)
     to_process = list(set(bands) & set(data.band.data.tolist()))
-    
+
     new = data.sel(time=~baseline_flag).drop_sel(band=to_process)
 
     new_harmonized = data.sel(time=~baseline_flag, band=to_process).copy()
-    
+
     new_harmonized = new_harmonized.clip(offset)
     new_harmonized -= offset
 
-    new = xr.concat([new, new_harmonized], "band").sel(band=data.band.data.tolist())
+    new = xr.concat([new, new_harmonized], "band").sel(
+        band=data.band.data.tolist())
     return xr.concat([old, new], dim="time")
-
 
 
 def load_sentinel2_tile(tile,
                         start_date,
                         end_date,
                         max_cloud_cover=90):
-    
+    import pystac_client
+    import planetary_computer
+    import stackstac
+
     catalog = pystac_client.Client.open(
         "https://planetarycomputer.microsoft.com/api/stac/v1",
         modifier=planetary_computer.sign_inplace,
@@ -95,9 +104,6 @@ def load_sentinel2_tile(tile,
                             query=query_params)
     items = search.get_all_items()
 
-    bands = ['B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08',
-             'B09', 'B11', 'B12', 'B8A', 'SCL']
-
     assets_10m = ['B02', 'B03', 'B04', 'B08']
     assets_20m = ['B05', 'B06', 'B07', 'B8A', 'B09',
                   'B11', 'B12']
@@ -108,7 +114,7 @@ def load_sentinel2_tile(tile,
     assets = {10: assets_10m,
               20: assets_20m,
               60: assets_60m,
-             'scl': [scl]}
+              'scl': [scl]}
 
     chunksize = {10: 1024,
                  20: 512,
@@ -134,11 +140,11 @@ def load_sentinel2_tile(tile,
         drop_vars = [v for v in ds_vars if v not in keep_vars]
         ds[res] = ds[res].drop_vars(drop_vars)
         ds[res] = force_unique_time(ds[res])
-        
+
         # coerce dtypes
         for v in ['id', 'band', 's2:processing_baseline']:
             ds[res][v] = ds[res][v].astype(str)
-            
+
     return ds[10], ds[20], ds[60], ds['scl']
 
 
@@ -149,7 +155,7 @@ class ESAWorldCoverTimeSeries:
         self._obj.attrs['bounds'] = self.bounds
         # run check that we have a timeseries
         # assert xarray_obj.dims == ('time', 'band', 'y', 'x')
-        
+
     def rescale(self,
                 scale=2,
                 order=1,
@@ -160,10 +166,10 @@ class ESAWorldCoverTimeSeries:
                           order=order,
                           preserve_range=preserve_range,
                           nodata_val=nodata_val)
-    
+
     def mask(self, mask):
         return mask_clouds(self._obj, mask)
-    
+
     def composite(self,
                   freq=7,
                   window=None,
@@ -176,41 +182,41 @@ class ESAWorldCoverTimeSeries:
                                           start,
                                           end,
                                           use_all_obs)
-    
+
     def interpolate(self):
         darr_interp = da.map_blocks(
             interpolate_ts_linear,
             self._obj.data,
             dtype=self._obj.dtype,
             chunks=self._obj.chunks)
-        
+
         out = self._obj.copy(data=darr_interp)
         return out
 
     @property
     def bounds(self):
-        
+
         darr = self._obj
-        
+
         res = darr.x[1] - darr.x[0]
         hres = res / 2
-        
+
         xmin = (darr.x[0] - hres).values.tolist()
         xmax = (darr.x[-1] + hres).values.tolist()
-        
+
         ymin = (darr.y[-1] - hres).values.tolist()
         ymax = (darr.y[0] + hres).values.tolist()
-        
+
         return xmin, ymin, xmax, ymax
-    
+
     def harmonize(self):
         return harmonize(self._obj)
-     
-    def cache(self, tempdir='.', chunks=(-1, -1, 256, 256):
+
+    def cache(self, tempdir='.', chunks=(-1, -1, 256, 256)):
         tmpfile = tempfile.NamedTemporaryFile(suffix='.nc',
                                               prefix='satio-',
-                                              dir=tempdir) 
-        
+                                              dir=tempdir)
+
         chunks = self._obj.chunks if chunks is None else chunks
 
         self._obj.to_netcdf(tmpfile.name)
@@ -218,13 +224,13 @@ class ESAWorldCoverTimeSeries:
 
         atexit.register(tmpfile.close)
         return darr
-    
+
     def rgb(self, bands=None, vmin=0, vmax=1000, **kwargs):
-        import hvplot.xarray # noqa
-        import hvplot.pandas # noqa
-        import panel as pn
+        import hvplot.xarray  # noqa
+        import hvplot.pandas  # noqa
+        import panel as pn  # noqa
         import panel.widgets as pnw
-        
+
         bands = ['B04', 'B03', 'B02'] if bands is None else bands
         im = self._obj.sel(band=bands).clip(vmin, vmax) / (vmax - vmin)
         return im.interactive.sel(
@@ -235,17 +241,19 @@ class ESAWorldCoverTimeSeries:
             xaxis=None,
             yaxis=None,
             **kwargs)
-    
-    def plot(self, band=None, vmin=None, vmax=None, colormap='plasma', **kwargs):
-        import hvplot.xarray # noqa
-        import hvplot.pandas # noqa
-        import panel as pn
-        import panel.widgets as pnw 
-        
+
+    def plot(self, band=None, vmin=None, vmax=None,
+             colormap='plasma', **kwargs):
+        import hvplot.xarray  # noqa
+        import hvplot.pandas  # noqa
+        import panel as pn  # noqa
+        import panel.widgets as pnw
+
         im = self._obj
         band = im.band[0] if band is None else band
         im = im.sel(band=band)
-        return im.interactive.sel(time=pnw.DiscreteSlider).plot(vmin=vmin,
-                                                                vmax=vmax,
-                                                                colormap=colormap,
-                                                                **kwargs)
+        return im.interactive.sel(time=pnw.DiscreteSlider).plot(
+            vmin=vmin,
+            vmax=vmax,
+            colormap=colormap,
+            **kwargs)

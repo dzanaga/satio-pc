@@ -3,7 +3,7 @@ SCL mask improvements
 
 by checking the values temporally, we can identify anomalies
 
-for example if only few pixels have a high rate of being flagged as 
+for example if only few pixels have a high rate of being flagged as
 either snow/dark/cloud and the block cover for that category is low,
 then we can assume that this is an outlier.
 
@@ -13,9 +13,10 @@ that probably there are no clouds/shadows and the flag can be removed
 
 We can run some outliers detection based on this.
 
-Snow fraction. We should compute the snow fraction over the valid obs (non clouds)
-This can be used for permanent snow detection, and in general can be an interesting
-layer.
+Snow fraction. We should compute the snow fraction over the valid obs (non
+clouds)
+This can be used for permanent snow detection, and in general can be an
+interesting layer.
 """
 from dataclasses import dataclass
 

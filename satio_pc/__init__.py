@@ -7,7 +7,7 @@ except Exception:
     pass
 
 from satio_pc._version import __version__
-from satio_pc.sentinel2 import ESAWorldCoverTimeSeries
+from satio_pc.sentinel2 import ESAWorldCoverTimeSeries  # noqa
 
 __all__ = ['__version__']
 

@@ -1,6 +1,5 @@
 from numba import njit
 import numpy as np
-from numba import guvectorize
 
 # def cubic_spline_interpolation(x, y, xx):
 #     # Compute the second derivatives of the cubic spline
@@ -54,47 +53,49 @@ from numba import guvectorize
 #     return yy
 
 
-
 @njit
 def interpolate_ts_linear(arr):
     out = np.zeros_like(arr)
     for band in range(arr.shape[1]):
         for py in range(arr.shape[2]):
             for px in range(arr.shape[3]):
-                
+
                 t = arr[:, band, py, px]
-                
+
                 nans_ids = (t == 0)
                 x_valid = np.where(~nans_ids)[0]
                 y_valid = t[x_valid]
                 x_invalid = np.where(nans_ids)[0]
-                
+
                 re_init = False
                 if t[0] == 0:
                     t[0] = np.mean(y_valid)
                     re_init = True
-                
+
                 if t[-1] == 0:
                     t[-1] = np.mean(y_valid)
                     re_init = True
-                
+
                 if re_init:
                     nans_ids = (t == 0)
                     x_valid = np.where(~nans_ids)[0]
                     y_valid = t[x_valid]
                     x_invalid = np.where(nans_ids)[0]
-                
+
                 y_new = np.empty_like(x_invalid,
                                       dtype=arr.dtype)
-                
+
                 m = len(x_invalid)
                 y_new = t.copy()
                 for i in range(m):
-                    j = np.searchsorted(x_valid, x_invalid[i], side='right') - 1
-                    
-                    s = (x_invalid[i] - x_valid[j]) / (x_valid[j + 1] - x_valid[j])
-                    y_new[x_invalid[i]] = (1 - s) * y_valid[j] + s * y_valid[j + 1]
-                
+                    j = np.searchsorted(
+                        x_valid, x_invalid[i], side='right') - 1
+
+                    s = (x_invalid[i] - x_valid[j]) / \
+                        (x_valid[j + 1] - x_valid[j])
+                    y_new[x_invalid[i]] = (
+                        1 - s) * y_valid[j] + s * y_valid[j + 1]
+
                 out[:, band, py, px] = y_new
-    
+
     return out

@@ -1,22 +1,15 @@
 import warnings
-from typing import List
 from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_date
 
-from loguru import logger
 import pandas as pd
 import numpy as np
 import dask.array as da
-
-
-# compositing code
-import pandas as pd
-from datetime import datetime, timedelta
-from dateutil.parser import parse as parse_date
+import xarray as xr
 
 
 def _get_date_range(start, end, freq, window):
-    
+
     before = round(window / 2)
     start, end = parse_date(start), parse_date(end)
 
@@ -83,7 +76,7 @@ def calculate_moving_composite(darr: xr.DataArray,
     # comp = da.zeros(comp_shape,
     #                 dtype=darr.dtype)
     time = darr.time.values
-    
+
     start = str(time[0])[:10] if start is None else start
     end = str(time[-1])[:10] if end is None else end
 
@@ -102,17 +95,15 @@ def calculate_moving_composite(darr: xr.DataArray,
                                            before,
                                            after,
                                            use_all_obs)
-    
-    # comp = []
+
     for i, d in enumerate(date_range):
         flag = intervals_flags[i]
         idxs = np.where(flag)[0]
-        
-        band_arrs = []
+
         for band_idx in range(comp.shape[1]):
             comp[i, band_idx, ...] = nanmedian(darr.isel(time=idxs,
                                                          band=band_idx))
-        
+
     darr_out = xr.DataArray(comp,
                             dims=darr.dims,
                             coords={'time': date_range.values,
@@ -120,7 +111,7 @@ def calculate_moving_composite(darr: xr.DataArray,
                                     'y': darr.y,
                                     'x': darr.x},
                             attrs=darr.attrs)
-                                               
+
     return darr_out
 
 
@@ -160,7 +151,7 @@ def _get_invervals_flags(date_range,
 
 def nanmedian(arr):
     """arr should be an xarray with dims (time, y, x)"""
-    
+
     start_dtype = arr.dtype
     if start_dtype not in (np.float32, np.float64):
         arr = arr.astype(np.float32)
@@ -185,66 +176,6 @@ def _get_before_after(window: int):
 
     if mod == 0:  # even window size
         after = max(0, after - 1)  # after >= 0
-
-    return before, after
-
-
-def _check_window_settings(freq,
-                           before,
-                           after,
-                           mode,
-                           supported_modes=None):
-    """
-    Perform a check on the values of before and after against freq, mode
-    and supported_modes.
-
-    If mode is sum before and after will be computed to give non overlapping
-    windows.
-
-    If one of before or after are None, the other is set to the values of the
-    valid one.
-
-    If before and after are both None,
-    """
-    if supported_modes is None:
-        supported_modes = SUPPORTED_MODES
-
-    if mode not in supported_modes:
-        raise ValueError(('Compositing mode should be one of '
-                          f'{supported_modes}, but got: `{mode}`'))
-
-    no_ov_modes = ['sum', 'min', 'max']
-    if mode in no_ov_modes:
-        if (before is not None or after is not None):
-            logger.warning(('`before` and `after` arguments are ignored for '
-                            f'compositing mode `{no_ov_modes}`.'))
-        # For these modes window overlap is not allowed in the time subsets
-        # to avoid double counting of values
-        before = after = None
-
-    # if one of before or after is None, set it simmetrically to the valid one
-    before = before or after
-    after = after or before
-
-    if (before is None and after is None):
-        before, after = _get_default_before_after(freq)
-
-    return before, after
-
-
-def _get_default_before_after(freq):
-    """
-    Based on the freq, return before and after for non overlapping windows
-    """
-    if freq == 1:
-        before = 0
-        after = 0
-    elif freq % 2 == 0:
-        before = freq / 2 - 1
-        after = freq / 2
-    else:
-        before = int(np.floor(freq / 2))
-        after = int(np.floor(freq / 2))
 
     return before, after
 

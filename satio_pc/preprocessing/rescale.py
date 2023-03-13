@@ -1,4 +1,8 @@
 import warnings
+import numpy as np
+import skimage
+import dask.array as da
+import xarray as xr
 
 
 def _rescale_ts(ts,
@@ -7,13 +11,13 @@ def _rescale_ts(ts,
                 preserve_range=True,
                 nodata_val=0,
                 sigma=0.5):
-    
+
     if order > 1:
         raise ValueError('Skimage giving issues with nans and cubic interp')
-    
+
     ts_dtype = ts.dtype
-    
-    if order > 0:    
+
+    if order > 0:
         new_dtype = np.float32
         ts = ts.astype(new_dtype)
         ts[ts == nodata_val] = np.nan
@@ -21,26 +25,28 @@ def _rescale_ts(ts,
         new_dtype = ts_dtype
 
     shape = ts.shape
-    new_shape = shape[0], shape[1], int(shape[2] * scale), int(shape[3] * scale)
+    new_shape = shape[0], shape[1], int(
+        shape[2] * scale), int(shape[3] * scale)
     new = np.empty(new_shape, dtype=new_dtype)
-    
+
     anti_aliasing = None
     anti_aliasing_sigma = None
-    
+
     if scale < 1:
         anti_aliasing = True,
         anti_aliasing_sigma = sigma
-    
+
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         for t in range(shape[0]):
-            new[t, :, :, :] = skimage.transform.rescale(ts[t, ...],
-                                                        scale=scale,
-                                                        order=order,
-                                                        preserve_range=preserve_range,
-                                                        channel_axis=0,
-                                                        anti_aliasing=anti_aliasing,
-                                                        anti_aliasing_sigma=anti_aliasing_sigma)
+            new[t, :, :, :] = skimage.transform.rescale(
+                ts[t, ...],
+                scale=scale,
+                order=order,
+                preserve_range=preserve_range,
+                channel_axis=0,
+                anti_aliasing=anti_aliasing,
+                anti_aliasing_sigma=anti_aliasing_sigma)
 
     new[da.isnan(new)] = 0
     new = new.astype(ts_dtype)
@@ -54,12 +60,12 @@ def rescale_ts(ds20,
                preserve_range=True,
                nodata_val=0,
                sigma=0.5):
-    
+
     chunks = list(ds20.chunks)
-    
+
     for i in -1, -2:
         chunks[i] = tuple(map(lambda x: x * scale, chunks[i]))
-    
+
     darr_scaled = da.map_blocks(
         _rescale_ts,
         ds20.data,
@@ -75,11 +81,11 @@ def rescale_ts(ds20,
     new_res = ds20.attrs.get('resolution',
                              ds20.x[1] - ds20.x[0]) / scale
     new_res_half = new_res / 2
-    
+
     new_x = np.linspace(xmin + new_res_half,
                         xmax - new_res_half,
                         int(ds20.shape[-2] * scale))
-    
+
     new_y = np.linspace(ymax - new_res_half,
                         ymin + new_res_half,
                         int(ds20.shape[-1] * scale))
@@ -91,7 +97,7 @@ def rescale_ts(ds20,
                                  'y': new_y,
                                  'x': new_x},
                          attrs=ds20.attrs)
-    
+
     ds20u.attrs['resolution'] = new_res
-    
+
     return ds20u

@@ -1,4 +1,6 @@
+import numpy as np
 from numba import njit
+
 
 @njit
 def pearsonr(x, y):
