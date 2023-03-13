@@ -32,6 +32,7 @@ setup(
         'h5netcdf',
         'importlib-resources',
         'loguru',
+        'planetary-computer',
         'rasterio',
         'rio-cogeo',
         'shapely',

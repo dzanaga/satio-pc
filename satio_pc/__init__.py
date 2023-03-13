@@ -7,6 +7,7 @@ except Exception:
     pass
 
 from satio_pc._version import __version__
+from satio_pc.sentinel2 import ESAWorldCoverTimeSeries
 
 __all__ = ['__version__']
 
