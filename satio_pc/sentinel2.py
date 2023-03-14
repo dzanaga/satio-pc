@@ -1,3 +1,5 @@
+from satio_pc.preprocessing.timer import FeaturesTimer
+from loguru import logger
 import atexit
 import tempfile
 import numpy as np
@@ -257,3 +259,90 @@ class ESAWorldCoverTimeSeries:
             vmax=vmax,
             colormap=colormap,
             **kwargs)
+
+
+def preprocess_s2(ds10_block,
+                  ds20_block,
+                  scl20_block,
+                  start_date,
+                  end_date,
+                  composite_freq=10,
+                  composite_window=20,
+                  tmpdir='.'):
+
+    timer10 = FeaturesTimer(10)
+    timer20 = FeaturesTimer(20)
+
+    with tempfile.TemporaryDirectory(prefix='satio_tmp-', dir=tmpdir) as tmpdirname:
+
+        # download
+        logger.info("Loading block data")
+        timer10.load.start()
+        ds10_block = ds10_block.satio.cache(tmpdirname)
+        timer10.load.stop()
+
+        timer20.load.start()
+        ds20_block = ds20_block.satio.cache(tmpdirname)
+        scl20_block = scl20_block.satio.cache(tmpdirname)
+        scl10_block = scl20_block.satio.rescale(scale=2, order=0)
+        scl10_block = scl10_block.satio.cache(tmpdirname)
+        timer20.load.stop()
+
+        # 10m
+        # mask clouds
+        timer10.composite.start()
+        ds10_block_masked = ds10_block.satio.mask(
+            scl10_block).satio.cache(tmpdirname)
+
+        logger.info("Compositing 10m block data")
+        # composite
+        ds10_block_comp = ds10_block_masked.satio.composite(
+            freq=composite_freq,
+            window=composite_window,
+            start=start_date,
+            end=end_date).satio.cache(tmpdirname)
+        timer10.composite.stop()
+
+        logger.info("Interpolating 10m block data")
+        # interpolation
+        timer10.interpolate.start()
+        ds10_block_interp = ds10_block_comp.satio.interpolate(
+        ).satio.cache(tmpdirname)
+        timer10.interpolate.stop()
+
+        # 20m
+        # mask
+        timer20.composite.start()
+        ds20_block_masked = ds20_block.satio.mask(
+            scl20_block).satio.cache(tmpdirname)
+
+        logger.info("Compositing 20m block data")
+        # composite
+        ds20_block_comp = ds20_block_masked.satio.composite(
+            freq=composite_freq,
+            window=composite_window,
+            start=start_date,
+            end=end_date).satio.cache(tmpdirname)
+        timer20.composite.stop()
+
+        logger.info("Interpolating 20m block data")
+        # interpolation
+        timer20.interpolate.start()
+        ds20_block_interp = ds20_block_comp.satio.interpolate(
+        ).satio.cache(tmpdirname)
+        timer20.interpolate.stop()
+
+        logger.info("Merging 10m and 20m series")
+        # merging to 10m cleaned data
+        ds20_block_interp_10m = ds20_block_interp.satio.rescale(scale=2,
+                                                                order=1)
+        dsm10 = xr.concat([ds10_block_interp,
+                           ds20_block_interp_10m],
+                          dim='band').satio.cache()
+
+        for t in timer10, timer20:
+            t.load.log()
+            t.composite.log()
+            t.interpolate.log()
+
+    return dsm10
