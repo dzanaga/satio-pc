@@ -1,14 +1,14 @@
-from satio_pc.preprocessing.timer import FeaturesTimer
-from loguru import logger
 import atexit
 import tempfile
 import numpy as np
 import xarray as xr
 import dask.array as da
+from loguru import logger
 
 from satio_pc.preprocessing.composite import calculate_moving_composite
 from satio_pc.preprocessing.interpolate import interpolate_ts_linear
 from satio_pc.preprocessing.rescale import rescale_ts
+from satio_pc.preprocessing.timer import FeaturesTimer
 
 
 def mask_clouds(darr, scl_mask):
