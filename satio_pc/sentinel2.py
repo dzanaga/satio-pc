@@ -268,6 +268,7 @@ def preprocess_s2(ds10_block,
                   end_date,
                   composite_freq=10,
                   composite_window=20,
+                  reflectance=True,
                   tmpdir='.'):
 
     timer10 = FeaturesTimer(10)
@@ -338,11 +339,16 @@ def preprocess_s2(ds10_block,
                                                                 order=1)
         dsm10 = xr.concat([ds10_block_interp,
                            ds20_block_interp_10m],
-                          dim='band').satio.cache()
+                          dim='band')
+
+        if reflectance:
+            dsm10 = dsm10.astype(np.float32) / 10000
 
         for t in timer10, timer20:
             t.load.log()
             t.composite.log()
             t.interpolate.log()
+
+    dsm10 = dsm10.satio.cache()
 
     return dsm10
