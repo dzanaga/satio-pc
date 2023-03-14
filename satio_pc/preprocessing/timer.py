@@ -65,15 +65,9 @@ class TaskTimer:
 
 class FeaturesTimer():
 
-    def __init__(self, *resolutions):
+    def __init__(self, resolution):
 
-        self.load = {}
-        self.composite = {}
-        self.interpolate = {}
-        self.features = {}
-
-        for r in resolutions:
-            self.load[r] = TaskTimer(f'{r}m loading')
-            self.composite[r] = TaskTimer(f'{r}m compositing')
-            self.interpolate[r] = TaskTimer(f'{r}m interpolation')
-            self.features[r] = TaskTimer(f'{r}m features computation')
+        self.load = TaskTimer(f'{resolution}m loading')
+        self.composite = TaskTimer(f'{resolution}m compositing')
+        self.interpolate = TaskTimer(f'{resolution}m interpolation')
+        self.features = TaskTimer(f'{resolution}m features computation')

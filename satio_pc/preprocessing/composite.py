@@ -98,11 +98,13 @@ def calculate_moving_composite(darr: xr.DataArray,
 
     for i, d in enumerate(date_range):
         flag = intervals_flags[i]
+        if not any(flag):
+            continue
         idxs = np.where(flag)[0]
 
         for band_idx in range(comp.shape[1]):
-            comp[i, band_idx, ...] = nanmedian(darr.isel(time=idxs,
-                                                         band=band_idx))
+            comp[i, band_idx, ...] = nonzeromedian(darr.isel(time=idxs,
+                                                             band=band_idx))
 
     darr_out = xr.DataArray(comp,
                             dims=darr.dims,
@@ -149,7 +151,7 @@ def _get_invervals_flags(date_range,
     return intervals_flags
 
 
-def nanmedian(arr):
+def nonzeromedian(arr):
     """arr should be an xarray with dims (time, y, x)"""
 
     start_dtype = arr.dtype

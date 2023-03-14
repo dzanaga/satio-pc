@@ -1,4 +1,4 @@
-from numba import njit
+import numba
 import numpy as np
 
 # def cubic_spline_interpolation(x, y, xx):
@@ -53,14 +53,14 @@ import numpy as np
 #     return yy
 
 
-@njit
+@numba.jit(nopython=True, error_model='numpy', fastmath=True)
 def interpolate_ts_linear(arr):
     out = np.zeros_like(arr)
     for band in range(arr.shape[1]):
         for py in range(arr.shape[2]):
             for px in range(arr.shape[3]):
 
-                t = arr[:, band, py, px]
+                t = arr[:, band, py, px].copy()
 
                 nans_ids = (t == 0)
                 x_valid = np.where(~nans_ids)[0]
@@ -82,19 +82,16 @@ def interpolate_ts_linear(arr):
                     y_valid = t[x_valid]
                     x_invalid = np.where(nans_ids)[0]
 
-                y_new = np.empty_like(x_invalid,
-                                      dtype=arr.dtype)
-
+                y_new = t
                 m = len(x_invalid)
-                y_new = t.copy()
                 for i in range(m):
                     j = np.searchsorted(
                         x_valid, x_invalid[i], side='right') - 1
-
-                    s = (x_invalid[i] - x_valid[j]) / \
-                        (x_valid[j + 1] - x_valid[j])
-                    y_new[x_invalid[i]] = (
-                        1 - s) * y_valid[j] + s * y_valid[j + 1]
+                    
+                    q = (x_valid[j + 1] - x_valid[j])
+                    s = (x_invalid[i] - x_valid[j]) / q
+                    
+                    y_new[x_invalid[i]] = (1 - s) * y_valid[j] + s * y_valid[j + 1]
 
                 out[:, band, py, px] = y_new
 
