@@ -35,6 +35,8 @@ Tucker, C. J. (1979). Red and photographic infrared linear combinations for moni
 """
 import sys
 import numpy as np
+import dask.array as da
+import xarray as xr
 
 
 RSI_META_S2 = {
@@ -330,3 +332,70 @@ def rvi(VH, VV):
     VV = _to_pwr(VV)
 
     return (4 * VH) / (VV + VH)
+
+
+def _rsi_chunk(ts, bands, indices, clip=True):
+    st, sb, sy, sx = ts.shape
+
+    nout = len(indices)
+    out = np.zeros((st, nout, sy, sx), dtype=np.float32)
+
+    for i, rsi in enumerate(indices):
+        rsi_meta = RSI_META_S2[rsi]
+        rsi_bands = rsi_meta['bands']
+        rsi_range_min, rsi_range_max = rsi_meta['range']
+        rsi_func = get_rsi_function(rsi)
+
+        bands_ids = [bands.index(b) for b in rsi_bands]
+
+        arr = rsi_func(*[ts[:, b, :, :] for b in bands_ids])
+
+        if clip:
+            vmin = rsi_range_min
+            vmax = rsi_range_max
+        else:
+            vmin = vmax = np.nan
+
+        arr[arr < rsi_range_min] = vmin
+        arr[arr > rsi_range_max] = vmax
+
+        out[:, i, :, :] = arr
+
+    return out
+
+
+def rsi_ts(ts, indices, clip=True):
+
+    if 'hsv' in indices:
+        raise NotImplementedError('Unsupported, use "hsvv" and "hsvh"')
+
+    supported_rsis = list(RSI_META_S2.keys())
+    unsupported = list(set(indices) - set(supported_rsis))
+    if len(unsupported):
+        raise ValueError(f"Remote sensing index '{unsupported}' not supported. "
+                         f"Supported indices: {supported_rsis}")
+
+    chunks = list(ts.chunks)
+
+    nout = len(indices)
+    chunks[1] = (nout,) * len(chunks[1])
+
+    new_ts = da.map_blocks(
+        _rsi_chunk,
+        ts.data,
+        ts.band.values.tolist(),
+        indices,
+        dtype=ts.dtype,
+        chunks=chunks,
+        clip=clip
+    )
+
+    new_darr = xr.DataArray(new_ts,
+                            dims=ts.dims,
+                            coords={'time': ts.time,
+                                    'band': list(indices),
+                                    'y': ts.y,
+                                    'x': ts.x},
+                            attrs=ts.attrs)
+
+    return new_darr

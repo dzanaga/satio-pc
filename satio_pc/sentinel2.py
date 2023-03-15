@@ -9,6 +9,8 @@ from satio_pc.preprocessing.composite import calculate_moving_composite
 from satio_pc.preprocessing.interpolate import interpolate_ts_linear
 from satio_pc.preprocessing.rescale import rescale_ts
 from satio_pc.preprocessing.timer import FeaturesTimer
+from satio_pc.indices import rsi_ts
+from satio_pc.features import percentile
 
 
 def mask_clouds(darr, scl_mask):
@@ -194,6 +196,14 @@ class ESAWorldCoverTimeSeries:
 
         out = self._obj.copy(data=darr_interp)
         return out
+
+    def s2indices(self, indices, clip=True):
+        """Compute Sentinel-2 remote sensing indices"""
+        return rsi_ts(self._obj, indices, clip)
+
+    def percentile(self, q=[10, 25, 50, 75, 90]):
+        """Compute set of percentiles for the time-series bands"""
+        return percentile(self._obj, q)
 
     @property
     def bounds(self):
