@@ -153,87 +153,6 @@ def norm_diff(arr1, arr2):
     return (arr1 - arr2) / (arr1 + arr2)
 
 
-class IndicesRegistry:
-    ...
-
-
-s2 = IndicesRegistry()
-
-
-class S2Indices:
-
-    _clip = True
-
-    def __init_subclass__(cls):
-
-        if not hasattr(cls, 'name'):
-            raise ValueError("Subclasses must have a 'name' attribute.")
-
-        setattr(s2, cls.name, cls())
-
-    def clip(self, arr):
-
-        if self._clip:
-            vmin, vmax = self.values_range
-        else:
-            vmin = vmax = np.nan
-
-        arr[arr < vmin] = vmin
-        arr[arr > vmax] = vmax
-
-        return arr
-
-
-class AUC(S2Indices):
-
-    name = 'auc'
-    bands = 'B02', 'B03', 'B04', 'B08', 'B11', 'B12'
-    values_range = 0, 0.506
-
-    def __call__(self, B02, B03, B04, B08, B11, B12):
-
-        arr = (B02 * FWHM_B02 + B03 * FWHM_B03 +
-               B04 * FWHM_B04 + B08 * FWHM_B08 +
-               B11 * FWHM_B11 + B12 * FWHM_B12)
-
-        return self.clip(arr)
-
-
-class NAUC(S2Indices):
-
-    name = 'nauc'
-    bands = 'B02', 'B03', 'B04', 'B08', 'B11', 'B12'
-    values_range = 0, 0.506
-
-    def __call__(self, B02, B03, B04, B08, B11, B12):
-
-        min_ref = np.fmin(np.fmin(np.fmin(B02, B03),
-                                  np.fmin(B04, B08)
-                                  ),
-                          np.fmin(B11, B12)
-                          )
-
-        arr = ((B02 - min_ref) * FWHM_B02
-               + (B03 - min_ref) * FWHM_B03
-               + (B04 - min_ref) * FWHM_B04
-               + (B08 - min_ref) * FWHM_B08
-               + (B11 - min_ref) * FWHM_B11
-               + (B12 - min_ref) * FWHM_B12)
-
-        return self.clip(arr)
-
-
-class NDVI(S2Indices):
-
-    name = 'ndvi'
-    bands = 'B08', 'B04'
-    values_range = -1, 1
-
-    def __call__(self, B08, B04):
-        arr = norm_diff(B08, B04)
-        return self.clip(arr)
-
-
 def get_rsi_function(rsi_name, meta=None):
     """
     Derive RSI function either from its name or from meta
@@ -275,25 +194,6 @@ def sipi(B08, B01, B04):
     return (B08 - B01) / (B08 - B04)
 
 
-def hsv(B04, B03, B02):
-    """Returns hsv 3d array from RGB bands"""
-    nodata = np.isnan(B04)
-    h, v = get_hsv_hue_value(B04, B03, B02)
-    h[nodata] = np.nan
-    v[nodata] = np.nan
-    return np.array([h, v])
-
-
-def hsvh(B04, B03, B02):
-    hv = hsv(B04, B03, B02)
-    return hv[0]
-
-
-def hsvv(B04, B03, B02):
-    hv = hsv(B04, B03, B02)
-    return hv[1]
-
-
 def rep(B04, B07, B05, B06):
     return 700 + 40 * ((((B04 + B07) / 2) - B05) / (B06 - B05))
 
@@ -315,40 +215,44 @@ def nirv(B08, B04):
     return ((B08 - B04 / B08 + B04) - 0.08) * B08
 
 
-def auc(B02, B04, B08, B11):
-    return B02 * FWHM_B02 + B04 * FWHM_B04 + B08 * FWHM_B08 + B11 * FWHM_B11
+def auc(B02, B03, B04, B08, B11, B12):
+    return (B02 * FWHM_B02 + B03 * FWHM_B03 +
+            B04 * FWHM_B04 + B08 * FWHM_B08 +
+            B11 * FWHM_B11 + B12 * FWHM_B12)
 
 
-def nauc(B02, B04, B08, B11):
-    min_ref = np.fmin(np.fmin(B02, B04), np.fmin(B08, B11))
+def nauc(B02, B03, B04, B08, B11, B12):
+    min_ref = np.fmin(np.fmin(np.fmin(B02, B03),
+                              np.fmin(B04, B08)
+                              ),
+                      np.fmin(B11, B12)
+                      )
+
     return ((B02 - min_ref) * FWHM_B02
+            + (B03 - min_ref) * FWHM_B03
             + (B04 - min_ref) * FWHM_B04
             + (B08 - min_ref) * FWHM_B08
-            + (B11 - min_ref) * FWHM_B11)
+            + (B11 - min_ref) * FWHM_B11
+            + (B12 - min_ref) * FWHM_B12)
 
 
-def get_hsv_timeseries(r, g, b):
+def hsv(B04, B03, B02):
+    """Returns hsv 3d array from RGB bands"""
+    nodata = np.isnan(B04)
+    h, v = get_hsv_hue_value(B04, B03, B02)
+    h[nodata] = np.nan
+    v[nodata] = np.nan
+    return np.array([h, v])
 
-    h, s, v = np.zeros(r.shape), np.zeros(r.shape), np.zeros(r.shape)
 
-    rgb = np.array([r, g, b])
-    mx = np.nanmax(rgb, 0)
-    mn = np.nanmin(rgb, 0)
+def hsvh(B04, B03, B02):
+    hv = hsv(B04, B03, B02)
+    return hv[0]
 
-    diff = mx - mn
 
-    h[mx == mn] = 0
-    h[mx == r] = ((60 * ((g - b) / diff) + 360) % 360)[mx == r]
-    h[mx == g] = ((60 * ((b - r) / diff) + 360) % 360)[mx == g]
-    h[mx == b] = ((60 * ((r - g) / diff) + 360) % 360)[mx == b]
-    h = h / 360
-
-    s = diff / mx
-    s[mx == 0] = 0
-
-    v = mx
-
-    return h, s, v
+def hsvv(B04, B03, B02):
+    hv = hsv(B04, B03, B02)
+    return hv[1]
 
 
 def get_hsv_hue_value(r, g, b):
@@ -370,6 +274,15 @@ def get_hsv_hue_value(r, g, b):
     v = mx
 
     return h, v
+
+
+def bsi(B02, B04, B08, B11):
+    """Function to calculate bare soil index
+    """
+
+    bsi = ((B11 + B04) - (B08 + B02)) / ((B11 + B04) + (B08 + B02))
+
+    return bsi
 
 
 def brightness(B03, B04, B08, B11):
@@ -419,12 +332,3 @@ def rvi(VH, VV):
     VV = _to_pwr(VV)
 
     return (4 * VH) / (VV + VH)
-
-
-def bsi(B02, B04, B08, B11):
-    """Function to calculate bare soil index
-    """
-
-    bsi = ((B11 + B04) - (B08 + B02)) / ((B11 + B04) + (B08 + B02))
-
-    return bsi
