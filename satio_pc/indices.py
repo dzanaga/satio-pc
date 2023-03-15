@@ -41,228 +41,181 @@ NODATA_VALUE = -2**15
 RSI_META_S2 = {
     'ndvi': {
         'bands': ['B08', 'B04'],
-        'range': [-1, 1],
-        'clamp_range': False,
-        'scale': 2000,
-        'native_res': 10},
+        'range': [-1, 1]},
 
     # NDWI (Gao, 1996)
     'ndmi': {'bands': ['B08', 'B11'],
-             'range': [-1, 1],
-             'clamp_range': False,
-             'scale': 10000,
-             'native_res': 20},
+             'range': [-1, 1]},
 
     'nbr': {'bands': ['B08', 'B12'],
-            'range': [-1, 1],
-            'clamp_range': False,
-            'scale': 10000,
-            'native_res': 20},
+            'range': [-1, 1]},
 
     'nbr2': {'bands': ['B11', 'B12'],
-             'range': [-3, 3],
-             'clamp_range': False,
-             'scale': 10000,
-             'native_res': 20},
+             'range': [-3, 3]},
 
     'evi': {'bands': ['B08', 'B04', 'B02'],
-            'range': [-3, 3],
-            'clamp_range': False,
-            'scale': 10000,
-            'native_res': 10},
+            'range': [-3, 3]},
 
     'evi2': {'bands': ['B08', 'B04'],
-             'range': [-3, 3],
-             'clamp_range': False,
-             'scale': 10000,
-             'native_res': 10},
+             'range': [-3, 3]},
 
     'savi': {'bands': ['B08', 'B04'],
-             'range': [-3, 3],
-             'clamp_range': False,
-             'scale': 10000,
-             'native_res': 10},
+             'range': [-3, 3]},
 
     'sipi': {'bands': ['B08', 'B01', 'B04'],
-             'range': [-10, 10],
-             'clamp_range': False,
-             'scale': 1000,
-             'native_res': 60},
+             'range': [-10, 10]},
 
     'hsvh': {'bands': ['B04', 'B03', 'B02'],
-             'range': [0, 1],
-             'clamp_range': False,
-             'scale': 18000,
-             'native_res': 10},
+             'range': [0, 1]},
 
     'hsvv': {'bands': ['B04', 'B03', 'B02'],
-             'range': [0, 1],
-             'clamp_range': False,
-             'scale': 2000,
-             'native_res': 10},
+             'range': [0, 1]},
 
     'hsv': {'bands': ['B04', 'B03', 'B02'],
             'range': [0, 1],
-            'clamp_range': False,
-            'scale': 2000,
-            'native_res': 10,
             'output_bands': ['hsvh', 'hsvv']},
 
     'rep': {'bands': ['B04', 'B07', 'B05', 'B06'],
-            'range': [500, 900],
-            'clamp_range': False,
-            'scale': 10,
-            'native_res': 20},
+            'range': [500, 900]},
 
     'anir': {'bands': ['B04', 'B08', 'B11'],
-             'range': [0, 1],
-             'clamp_range': False,
-             'scale': 1,
-             'native_res': 20},
+             'range': [0, 1]},
 
     'nirv': {'bands': ['B08', 'B04'],
-             'range': [-1, 1],
-             'clamp_range': False,
-             'scale': 10000,
-             'native_res': 10},
+             'range': [-1, 1]},
 
     'auc': {'bands': ['B02', 'B04', 'B08', 'B11'],
-            'range': [0, 1],
-            'clamp_range': False,
-            'scale': 20000,
-            'native_res': 20},
+            'range': [0, 1]},
 
     'nauc': {'bands': ['B02', 'B04', 'B08', 'B11'],
-             'range': [0, 1],
-             'clamp_range': False,
-             'scale': 20000,
-             'native_res': 20},
+             'range': [0, 1]},
 
     # ndwi (mcFeeters)
     'ndwi': {'bands': ['B03', 'B08'],
-             'range': [-1, 1],
-             'clamp_range': False,
-             'scale': 1,
-             'native_res': 10},
+             'range': [-1, 1]},
 
     # modified NDWI (Xu, 2006)
     'mndwi': {'bands': ['B03', 'B11'],
-              'range': [-1, 1],
-              'clamp_range': False,
-              'scale': 1,
-              'native_res': 20},
+              'range': [-1, 1]},
 
     # normalized difference greenness index
     'ndgi': {'bands': ['B03', 'B04'],
-             'range': [-1, 1],
-             'clamp_range': False,
-             'scale': 1,
-             'native_res': 10},
+             'range': [-1, 1]},
 
     # bare soil index
     'bsi': {'bands': ['B02', 'B04', 'B08', 'B11'],
-            'range': [-1, 1],
-            'clamp_range': False,
-            'scale': 1,
-            'native_res': 20
-            },
+            'range': [-1, 1]},
 
     # brightness (as defined in sen2agri)
     'brightness': {'bands': ['B03', 'B04', 'B08', 'B11'],
-                   'range': [0, 1],
-                   'clamp_range': False,
-                   'scale': 1,
-                   'native_res': 20},
+                   'range': [0, 1]},
 
-    # series of normalized difference rede edge indices
+    # series of normalized difference red edge indices
     'ndre1': {'bands': ['B08', 'B05'],
-              'range': [-1, 1],
-              'clamp_range': False,
-              'scale': 1,
-              'native_res': 20},
+              'range': [-1, 1]},
 
     'ndre2': {'bands': ['B08', 'B06'],
-              'range': [-1, 1],
-              'clamp_range': False,
-              'scale': 1,
-              'native_res': 20},
+              'range': [-1, 1]},
 
     'ndre3': {'bands': ['B08', 'B07'],
-              'range': [-1, 1],
-              'clamp_range': False,
-              'scale': 1,
-              'native_res': 20},
+              'range': [-1, 1]},
 
     'ndre4': {'bands': ['B06', 'B05'],
-              'range': [-1, 1],
-              'clamp_range': False,
-              'scale': 1,
-              'native_res': 20},
+              'range': [-1, 1]},
 
     'ndre5': {'bands': ['B07', 'B05'],
-              'range': [-1, 1],
-              'clamp_range': False,
-              'scale': 1,
-              'native_res': 20}}
+              'range': [-1, 1]}
+}
 
 RSI_META_S1 = {
     'vh_vv': {
         'bands': ['VH', 'VV'],
-        'range': [-20, 0],
-        'clamp_range': False,
-        'scale': 1,
-        'native_res': 20},
+        'range': [-20, 0]},
     'rvi': {
         'bands': ['VH', 'VV'],
-        'range': [0, 2],
-        'clamp_range': False,
-        'scale': 1,
-        'native_res': 20}}
-
-RSI_META_AgERA5 = {
-    'et0': {
-        'bands': ['temperature_min', 'temperature_max',
-                  'solar_radiation_flux', 'vapour_pressure',
-                  'wind_speed', 'elev', 'doy', 'lat'],
-        'range': [0, 15],
-        'clamp_range': False,
-        'scale': 1,
-        'native_res': 100,
-        'prior': True},
-    'et': {
-        'bands': ['et0'],
-        'range': [0, 15],
-        'clamp_range': False,
-        'scale': 1,
-        'native_res': 20},
-    'prdef': {
-        'bands': ['et0', 'precipitation_flux'],
-        'range': [-15, 15],
-        'clamp_range': False,
-        'scale': 1,
-        'native_res': 20}
-}
-
-RSI_META_L8 = {
-    'ndvi': {
-        'bands': ['B05', 'B04'],
-        'range': [-1, 1],
-        'clamp_range': False,
-        'scale': 1,
-        'native_res': 10},
+        'range': [0, 2]}
 }
 
 RSI_META = {'S2': RSI_META_S2,
-            'S1': RSI_META_S1,
-            'AgERA5': RSI_META_AgERA5,
-            'L8': RSI_META_L8}
+            'S1': RSI_META_S1}
 
-WL_B02, FWHM_B02 = 0.4924, 0.098
-WL_B04, FWHM_B04 = 0.6646, (0.039 + 0.038) / 2
-WL_B08, FWHM_B08 = 0.8328, (0.145 + 0.133) / 2
-WL_B11, FWHM_B11 = 1.610, (0.143 + 0.141) / 2
 
-# supported_vis = VI_META.keys()
+WL_B02, FWHM_B02 = (0.4927 + 0.4923) / 2, (0.065 + 0.065) / 2
+WL_B03, FWHM_B03 = (0.5598 + 0.5589) / 2, (0.035 + 0.035) / 2
+WL_B04, FWHM_B04 = (0.6646 + 0.6649) / 2, (0.030 + 0.031) / 2
+WL_B08, FWHM_B08 = (0.8328 + 0.8329) / 2, (0.105 + 0.104) / 2
+WL_B11, FWHM_B11 = (1.6137 + 1.6104) / 2, (0.090 + 0.094) / 2
+WL_B12, FWHM_B12 = (2.2024 + 2.1857) / 2, (0.174 + 0.184) / 2
+
+
+class IndicesRegistry:
+    ...
+
+
+s2 = IndicesRegistry()
+
+
+class S2Indices:
+
+    _clip = True
+
+    def __init_subclass__(cls):
+
+        if not hasattr(cls, 'name'):
+            raise ValueError("Subclasses must have a 'name' attribute.")
+
+        setattr(s2, cls.name, cls())
+
+    def clip(self, arr):
+
+        if self._clip:
+            vmin, vmax = self.values_range
+        else:
+            vmin = vmax = np.nan
+
+        arr[arr < vmin] = vmin
+        arr[arr > vmax] = vmax
+
+        return arr
+
+
+class AUC(S2Indices):
+
+    name = 'auc'
+    bands = 'B02', 'B03', 'B04', 'B08', 'B11', 'B12'
+    values_range = 0, 0.506
+
+    def __call__(self, B02, B03, B04, B08, B11, B12):
+
+        arr = (B02 * FWHM_B02 + B03 * FWHM_B03 +
+               B04 * FWHM_B04 + B08 * FWHM_B08 +
+               B11 * FWHM_B11 + B12 * FWHM_B12)
+
+        return self.clip(arr)
+
+
+class NAUC(S2Indices):
+
+    name = 'nauc'
+    bands = 'B02', 'B03', 'B04', 'B08', 'B11', 'B12'
+    values_range = 0, 0.506
+
+    def __call__(self, B02, B03, B04, B08, B11, B12):
+
+        min_ref = np.fmin(np.fmin(np.fmin(B02, B03),
+                                  np.fmin(B04, B08)
+                                  ),
+                          np.fmin(B11, B12)
+                          )
+
+        arr = ((B02 - min_ref) * FWHM_B02
+               + (B03 - min_ref) * FWHM_B03
+               + (B04 - min_ref) * FWHM_B04
+               + (B08 - min_ref) * FWHM_B08
+               + (B11 - min_ref) * FWHM_B11
+               + (B12 - min_ref) * FWHM_B12)
+
+        return self.clip(arr)
 
 
 def get_rsi_function(rsi_name, meta=None):
@@ -284,7 +237,8 @@ def get_rsi_function(rsi_name, meta=None):
                         'mndwi']:
             f = norm_diff
         else:
-            f = eval(rsi_name)
+            # f = eval(rsi_name)
+            f = locals()[rsi_name]
     return f
 
 
