@@ -40,9 +40,8 @@ import xarray as xr
 
 
 RSI_META_S2 = {
-    'ndvi': {
-        'bands': ['B08', 'B04'],
-        'range': [-1, 1]},
+    'ndvi': {'bands': ['B08', 'B04'],
+             'range': [-1, 1]},
 
     # NDWI (Gao, 1996)
     'ndmi': {'bands': ['B08', 'B11'],
@@ -63,18 +62,11 @@ RSI_META_S2 = {
     'savi': {'bands': ['B08', 'B04'],
              'range': [-3, 3]},
 
-    'sipi': {'bands': ['B08', 'B01', 'B04'],
-             'range': [-10, 10]},
-
     'hsvh': {'bands': ['B04', 'B03', 'B02'],
              'range': [0, 1]},
 
     'hsvv': {'bands': ['B04', 'B03', 'B02'],
              'range': [0, 1]},
-
-    'hsv': {'bands': ['B04', 'B03', 'B02'],
-            'range': [0, 1],
-            'output_bands': ['hsvh', 'hsvv']},
 
     'rep': {'bands': ['B04', 'B07', 'B05', 'B06'],
             'range': [500, 900]},
@@ -140,6 +132,8 @@ RSI_META_S1 = {
 RSI_META = {'S2': RSI_META_S2,
             'S1': RSI_META_S1}
 
+SUPPORTED_RSIS = {'S2': list(RSI_META_S2.keys()),
+                  'S1': list(RSI_META_S1.keys())}
 
 WL_B02, FWHM_B02 = (0.4927 + 0.4923) / 2, (0.065 + 0.065) / 2
 WL_B03, FWHM_B03 = (0.5598 + 0.5589) / 2, (0.035 + 0.035) / 2
@@ -188,10 +182,6 @@ def evi2(B08, B04):
 def savi(B08, B04):
     L = 0.428
     return (B08 - B04) / (B08 + B04 + L) * (1.0 + L)
-
-
-def sipi(B08, B01, B04):
-    return (B08 - B01) / (B08 - B04)
 
 
 def rep(B04, B07, B05, B06):
