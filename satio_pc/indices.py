@@ -77,10 +77,12 @@ RSI_META_S2 = {
     'nirv': {'bands': ['B08', 'B04'],
              'range': [-1, 1]},
 
-    'auc': {'bands': ['B02', 'B04', 'B08', 'B11'],
+    'auc': {'bands': ['B02', 'B03', 'B04',
+                      'B08', 'B11', 'B12'],
             'range': [0, 1]},
 
-    'nauc': {'bands': ['B02', 'B04', 'B08', 'B11'],
+    'nauc': {'bands': ['B02', 'B03', 'B04',
+                       'B08', 'B11', 'B12'],
              'range': [0, 1]},
 
     # ndwi (mcFeeters)
