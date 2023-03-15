@@ -237,7 +237,7 @@ def nauc(B02, B03, B04, B08, B11, B12):
 def hsv(B04, B03, B02):
     """Returns hsv 3d array from RGB bands"""
     nodata = np.isnan(B04)
-    h, v = get_hsv_hue_value(B04, B03, B02)
+    h, v = _get_hsv_hue_value(B04, B03, B02)
     h[nodata] = np.nan
     v[nodata] = np.nan
     return np.array([h, v])
@@ -253,7 +253,7 @@ def hsvv(B04, B03, B02):
     return hv[1]
 
 
-def get_hsv_hue_value(r, g, b):
+def _get_hsv_hue_value(r, g, b):
     h = np.zeros(r.shape, dtype=np.float32)
 
     rgb = np.array([r, g, b])
