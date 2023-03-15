@@ -148,6 +148,11 @@ WL_B11, FWHM_B11 = (1.6137 + 1.6104) / 2, (0.090 + 0.094) / 2
 WL_B12, FWHM_B12 = (2.2024 + 2.1857) / 2, (0.174 + 0.184) / 2
 
 
+def norm_diff(arr1, arr2):
+    """Returns the normalized difference of two bands"""
+    return (arr1 - arr2) / (arr1 + arr2)
+
+
 class IndicesRegistry:
     ...
 
@@ -218,6 +223,17 @@ class NAUC(S2Indices):
         return self.clip(arr)
 
 
+class NDVI(S2Indices):
+
+    name = 'ndvi'
+    bands = 'B08', 'B04'
+    values_range = -1, 1
+
+    def __call__(self, B08, B04):
+        arr = norm_diff(B08, B04)
+        return self.clip(arr)
+
+
 def get_rsi_function(rsi_name, meta=None):
     """
     Derive RSI function either from its name or from meta
@@ -240,11 +256,6 @@ def get_rsi_function(rsi_name, meta=None):
             # f = eval(rsi_name)
             f = locals()[rsi_name]
     return f
-
-
-def norm_diff(arr1, arr2):
-    """Returns the normalized difference of two bands"""
-    return (arr1 - arr2) / (arr1 + arr2)
 
 
 def evi(B08, B04, B02):
