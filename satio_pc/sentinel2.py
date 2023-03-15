@@ -320,7 +320,7 @@ def preprocess_s2(ds10_block,
         ds10_block_interp = ds10_block_comp.satio.interpolate(
         ).satio.cache(tmpdirname)
         timer10.interpolate.stop()
-
+        
         # 20m
         # mask
         timer20.composite.start()
