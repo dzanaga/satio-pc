@@ -33,10 +33,9 @@ Rouse, J. W., Haas, R. H., Schell, J. A., & Deering, D. W. (1974). Monitoring ve
 
 Tucker, C. J. (1979). Red and photographic infrared linear combinations for monitoring vegetation. Remote sensing of Environment, 8(2), 127-150.
 """
-
+import sys
 import numpy as np
 
-NODATA_VALUE = -2**15
 
 RSI_META_S2 = {
     'ndvi': {
@@ -172,8 +171,7 @@ def get_rsi_function(rsi_name, meta=None):
                         'mndwi']:
             f = norm_diff
         else:
-            # f = eval(rsi_name)
-            f = locals()[rsi_name]
+            f = getattr(sys.modules[__name__], rsi_name)
     return f
 
 
