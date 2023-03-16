@@ -1,22 +1,12 @@
 """
-SCL mask improvements
+SCL mask postprocessing
 
-by checking the values temporally, we can identify anomalies
-
-for example if only few pixels have a high rate of being flagged as
-either snow/dark/cloud and the block cover for that category is low,
-then we can assume that this is an outlier.
-
-For example, one river pixel is marked as dark/shadow 90% of the times
-for those observations where the shadow pixels are a small amount that means
-that probably there are no clouds/shadows and the flag can be removed
-
-We can run some outliers detection based on this.
-
-Snow fraction. We should compute the snow fraction over the valid obs (non
-clouds)
-This can be used for permanent snow detection, and in general can be an
-interesting layer.
+The SCL mask is binarized according to a list of given values.
+The binary mask is then eroded to get rid of spurious pixels coming
+from bright buildings or dark features. We assume clouds to be at least larger
+than few pixels.
+After erosion we dilate the mask as most often cloud borders are not flagged
+correctly.
 """
 from dataclasses import dataclass
 
