@@ -164,12 +164,12 @@ class ESAWorldCoverTimeSeries:
                 scale=2,
                 order=1,
                 preserve_range=True,
-                nodata_val=0):
+                nodata_value=0):
         return rescale_ts(self._obj,
                           scale=scale,
                           order=order,
                           preserve_range=preserve_range,
-                          nodata_val=nodata_val)
+                          nodata_value=nodata_value)
 
     def mask(self, mask):
         return mask_clouds(self._obj, mask)
@@ -348,7 +348,7 @@ def preprocess_s2(ds10_block,
         # merging to 10m cleaned data
         ds20_block_interp_10m = ds20_block_interp.satio.rescale(scale=2,
                                                                 order=1,
-                                                                nodata_vale=0)
+                                                                nodata_value=0)
         dsm10 = xr.concat([ds10_block_interp,
                            ds20_block_interp_10m],
                           dim='band')

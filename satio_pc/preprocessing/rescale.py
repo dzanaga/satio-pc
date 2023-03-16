@@ -9,7 +9,7 @@ def _rescale_ts(ts,
                 scale=2,
                 order=1,
                 preserve_range=True,
-                nodata_val=None,
+                nodata_value=None,
                 sigma=0.5):
 
     if order > 1:
@@ -22,8 +22,8 @@ def _rescale_ts(ts,
         # if data is not float we take care of the nodata
         new_dtype = np.float32
         ts = ts.astype(new_dtype)
-        if nodata_val is not None:
-            ts[ts == nodata_val] = np.nan
+        if nodata_value is not None:
+            ts[ts == nodata_value] = np.nan
     else:
         new_dtype = ts_dtype
 
@@ -51,8 +51,8 @@ def _rescale_ts(ts,
                 anti_aliasing=anti_aliasing,
                 anti_aliasing_sigma=anti_aliasing_sigma)
 
-    if nodata_val is not None:
-        new[da.isnan(new)] = nodata_val
+    if nodata_value is not None:
+        new[da.isnan(new)] = nodata_value
 
     new = new.astype(ts_dtype)
 
@@ -63,7 +63,7 @@ def rescale_ts(ds20,
                scale=2,
                order=1,
                preserve_range=True,
-               nodata_val=0,
+               nodata_value=0,
                sigma=0.5):
 
     chunks = list(ds20.chunks)
@@ -79,7 +79,7 @@ def rescale_ts(ds20,
         scale=scale,
         order=order,
         preserve_range=preserve_range,
-        nodata_val=nodata_val,
+        nodata_value=nodata_value,
         sigma=sigma)
 
     xmin, ymin, xmax, ymax = ds20.satio.bounds
