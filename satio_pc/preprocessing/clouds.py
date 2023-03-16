@@ -25,6 +25,21 @@ import dask.array as da
 from dask_image.ndmorph import binary_erosion, binary_dilation
 from skimage.morphology import footprints
 
+SCL_LEGEND = {
+    'no_data': 0,
+    'saturated_or_defective': 1,
+    'dark_area_pixels': 2,
+    'cloud_shadows': 3,
+    'vegetation': 4,
+    'not_vegetated': 5,
+    'water': 6,
+    'unclassified': 7,
+    'cloud_medium_probability': 8,
+    'cloud_high_probability': 9,
+    'thin_cirrus': 10,
+    'snow': 11
+}
+
 SCL_MASK_VALUES = [1, 3, 8, 9, 10, 11]
 
 
@@ -45,6 +60,10 @@ class SCLMask:
     obs: dask.array.core.Array
     invalid_before: dask.array.core.Array
     invalid_after: dask.array.core.Array
+    cover_snow: dask.array.core.Array
+    cover_water: dask.array.core.Array
+    cover_veg: dask.array.core.Array
+    cover_notveg: dask.array.core.Array
 
     def __repr__(self):
         return f'<SCLMask container - mask.shape: {self.mask.shape}>'
@@ -58,6 +77,21 @@ def scl_to_mask(scl_data,
     """
     From a timeseries (t, y, x) dataarray returns a binary mask False for the
     given mask_values and True elsewhere (valid pixels).
+
+    SCL_LEGEND = {
+        'no_data': 0,
+        'saturated_or_defective': 1,
+        'dark_area_pixels': 2,
+        'cloud_shadows': 3,
+        'vegetation': 4,
+        'not_vegetated': 5,
+        'water': 6,
+        'unclassified': 7,
+        'cloud_medium_probability': 8,
+        'cloud_high_probability': 9,
+        'thin_cirrus': 10,
+        'snow': 11
+    }
 
     Parameters:
     -----------
@@ -95,12 +129,21 @@ def scl_to_mask(scl_data,
 
     mask_values = SCL_MASK_VALUES
     mask = da.isin(scl_data, mask_values)
+    snow = scl_data == SCL_LEGEND['snow']
+    water = scl_data == SCL_LEGEND['water']
+    veg = scl_data == SCL_LEGEND['vegetation']
+    notveg = scl_data == SCL_LEGEND['not_vegetated']
 
     ts_obs = scl_data != 0
     obs = ts_obs.sum(axis=0)
 
     ma_mask = (mask & ts_obs)
     invalid_before = ma_mask.sum(axis=0) / obs
+
+    cover_snow = (snow & ts_obs).sum(axis=0) / obs
+    cover_water = (water & ts_obs).sum(axis=0) / obs
+    cover_veg = (veg & ts_obs).sum(axis=0) / obs
+    cover_notveg = (notveg & ts_obs).sum(axis=0) / obs
 
     if (erode_r is not None) | (erode_r > 0):
         e = footprints.disk(erode_r)
@@ -125,4 +168,11 @@ def scl_to_mask(scl_data,
     mask = mask.assign_coords(band='SCL')
     mask = mask.expand_dims('band', axis=1)
 
-    return SCLMask(mask, obs, invalid_before, invalid_after)
+    return SCLMask(mask,
+                   obs,
+                   invalid_before,
+                   invalid_after,
+                   cover_snow,
+                   cover_water,
+                   cover_veg,
+                   cover_notveg)
