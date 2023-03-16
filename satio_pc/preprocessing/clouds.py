@@ -58,11 +58,11 @@ class SCLMask:
         return self.__class__(new_mask, new_aux)
 
 
-def scl_ts_postprocess(scl_data,
-                       mask_values=None,
-                       erode_r=None,
-                       dilate_r=None,
-                       max_invalid_ratio=None):
+def preprocess_scl(scl_data,
+                   mask_values=None,
+                   erode_r=None,
+                   dilate_r=None,
+                   max_invalid_ratio=None):
     """
     From a timeseries (t, y, x) dataarray returns a binary mask False for the
     given mask_values and True elsewhere (valid pixels).
