@@ -22,6 +22,8 @@ from dataclasses import dataclass
 
 import dask
 import dask.array as da
+import xarray as xr
+import numpy as np
 from dask_image.ndmorph import binary_erosion, binary_dilation
 from skimage.morphology import footprints
 
@@ -50,30 +52,27 @@ class SCLMask:
 
     Attributes:
     mask
-    obs
-    invalid_before
-    invalid_after
+    aux
 
     Default SCL_MASK_VALUES = [1, 3, 8, 9, 10, 11]
     """
-    mask: dask.array.core.Array
-    obs: dask.array.core.Array
-    invalid_before: dask.array.core.Array
-    invalid_after: dask.array.core.Array
-    cover_snow: dask.array.core.Array
-    cover_water: dask.array.core.Array
-    cover_veg: dask.array.core.Array
-    cover_notveg: dask.array.core.Array
+    mask: xr.DataArray
+    aux: xr.DataArray
 
     def __repr__(self):
         return f'<SCLMask container - mask.shape: {self.mask.shape}>'
 
+    def clip(self, bounds):
+        new_mask = self.mask.rio.clip(*bounds)
+        new_aux = self.aux.rio.clip(*bounds)
+        return self.__class__(new_mask, new_aux)
 
-def scl_to_mask(scl_data,
-                mask_values=None,
-                erode_r=None,
-                dilate_r=None,
-                max_invalid_ratio=None):
+
+def scl_ts_postprocess(scl_data,
+                       mask_values=None,
+                       erode_r=None,
+                       dilate_r=None,
+                       max_invalid_ratio=None):
     """
     From a timeseries (t, y, x) dataarray returns a binary mask False for the
     given mask_values and True elsewhere (valid pixels).
@@ -113,17 +112,20 @@ def scl_to_mask(scl_data,
 
     Returns:
     --------
-    mask : 3D bool array
-        mask True for valid pixels, False for invalid
+    mask : 4D DataArray (time, band, y, x)
+        mask True for valid pixels, False for invalid, 1 band named SCL
 
-    obs : 2D int array
-        number of valid observations (different from 0 in scl_data)
+    aux : 4D DataArray (time, band, y, x)
+        singleton time dimension (to be consistent with satio ts)
+        and 7 bands:
 
-    invalid_before : 2D float array
-        ratio of invalid obs before morphological operations
-
-    invalid_after : 2D float array
-        ratio of invalid obs after morphological operations
+        l2a_obs : number of valid observations (different from 0 in scl_data)
+        scl_invalid_before : ratio of invalid obs before morphological operations
+        scl_invalid_after : ratio of invalid obs after morphological operations
+        scl_snow_cover : ratio of snow obs
+        scl_water_cover : ratio of water obs
+        scl_veg_cover : ratio of veg obs
+        scl_notveg_cover : ratio of notveg obs
     """
     scl_data = scl_data.sel(band='SCL')
 
@@ -135,7 +137,7 @@ def scl_to_mask(scl_data,
     notveg = scl_data == SCL_LEGEND['not_vegetated']
 
     ts_obs = scl_data != 0
-    obs = ts_obs.sum(axis=0)
+    obs = ts_obs.sum(axis=0).astype(np.float32)
 
     ma_mask = (mask & ts_obs)
     invalid_before = ma_mask.sum(axis=0) / obs
@@ -168,11 +170,26 @@ def scl_to_mask(scl_data,
     mask = mask.assign_coords(band='SCL')
     mask = mask.expand_dims('band', axis=1)
 
-    return SCLMask(mask,
-                   obs,
-                   invalid_before,
-                   invalid_after,
-                   cover_snow,
-                   cover_water,
-                   cover_veg,
-                   cover_notveg)
+    aux_names = ['l2a_obs', 'scl_invalid_before',
+                 'scl_invalid_after', 'scl_snow_cover',
+                 'scl_water_cover', 'scl_veg_cover',
+                 'scl_notveg_cover']
+
+    aux = da.concat([obs,
+                     invalid_before,
+                     invalid_after,
+                     cover_snow,
+                     cover_water,
+                     cover_veg,
+                     cover_notveg], axis=0).astype(np.float32)
+    print(aux.shape)
+
+    scl_aux = xr.DataArray(aux,
+                           dims=('time', 'band', 'y', 'x'),
+                           coords={'time': [mask.time.values[0]],
+                                   'band': aux_names,
+                                   'y': mask.y,
+                                   'x': mask.x},
+                           attrs=mask.attrs)
+
+    return SCLMask(mask, scl_aux)
