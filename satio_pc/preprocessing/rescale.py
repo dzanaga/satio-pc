@@ -9,18 +9,21 @@ def _rescale_ts(ts,
                 scale=2,
                 order=1,
                 preserve_range=True,
-                nodata_val=0,
+                nodata_val=None,
                 sigma=0.5):
 
     if order > 1:
         raise ValueError('Skimage giving issues with nans and cubic interp')
 
     ts_dtype = ts.dtype
+    is_float = ts_dtype in [np.float32, np.float64]
 
-    if order > 0:
+    if (order > 0) and not is_float:
+        # if data is not float we take care of the nodata
         new_dtype = np.float32
         ts = ts.astype(new_dtype)
-        ts[ts == nodata_val] = np.nan
+        if nodata_val is not None:
+            ts[ts == nodata_val] = np.nan
     else:
         new_dtype = ts_dtype
 
@@ -48,7 +51,9 @@ def _rescale_ts(ts,
                 anti_aliasing=anti_aliasing,
                 anti_aliasing_sigma=anti_aliasing_sigma)
 
-    new[da.isnan(new)] = 0
+    if nodata_val is not None:
+        new[da.isnan(new)] = nodata_val
+
     new = new.astype(ts_dtype)
 
     return new
