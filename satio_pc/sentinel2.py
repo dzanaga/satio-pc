@@ -295,7 +295,8 @@ def preprocess_s2(ds10_block,
         timer20.load.start()
         ds20_block = ds20_block.satio.cache(tmpdirname)
         scl20_block = scl20_block.satio.cache(tmpdirname)
-        scl10_block = scl20_block.satio.rescale(scale=2, order=0)
+        scl10_block = scl20_block.satio.rescale(scale=2,
+                                                order=0)
         scl10_block = scl10_block.satio.cache(tmpdirname)
         timer20.load.stop()
 
@@ -320,7 +321,7 @@ def preprocess_s2(ds10_block,
         ds10_block_interp = ds10_block_comp.satio.interpolate(
         ).satio.cache(tmpdirname)
         timer10.interpolate.stop()
-        
+
         # 20m
         # mask
         timer20.composite.start()
@@ -346,13 +347,16 @@ def preprocess_s2(ds10_block,
         logger.info("Merging 10m and 20m series")
         # merging to 10m cleaned data
         ds20_block_interp_10m = ds20_block_interp.satio.rescale(scale=2,
-                                                                order=1)
+                                                                order=1,
+                                                                nodata_vale=0)
         dsm10 = xr.concat([ds10_block_interp,
                            ds20_block_interp_10m],
                           dim='band')
 
         if reflectance:
             dsm10 = dsm10.astype(np.float32) / 10000
+
+        dsm10.attrs = ds10_block.attrs
 
         for t in timer10, timer20:
             t.load.log()
