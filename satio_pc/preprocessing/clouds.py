@@ -50,7 +50,9 @@ class SCLMask:
     aux: xr.DataArray
 
     def __repr__(self):
-        return f'<SCLMask container - mask.shape: {self.mask.shape}>'
+        return (f'<SCLMask container - '
+                f'mask.shape: {self.mask.shape} - '
+                f'aux.shape: {self.aux.shape}>')
 
     def clip(self, bounds):
         new_mask = self.mask.rio.clip(*bounds)
