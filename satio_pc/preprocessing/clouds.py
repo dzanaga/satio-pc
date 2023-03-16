@@ -172,7 +172,7 @@ def preprocess_scl(scl_data,
                     cover_water,
                     cover_veg,
                     cover_notveg], axis=0).astype(np.float32)
-    print(aux.shape)
+    aux = da.expand_dims(aux, axis=0)
 
     scl_aux = xr.DataArray(aux,
                            dims=('time', 'band', 'y', 'x'),
