@@ -109,8 +109,7 @@ def load_sentinel2_tile(tile,
     items = search.get_all_items()
 
     assets_10m = ['B02', 'B03', 'B04', 'B08']
-    assets_20m = ['B05', 'B06', 'B07', 'B8A', 'B09',
-                  'B11', 'B12']
+    assets_20m = ['B05', 'B06', 'B07', 'B8A', 'B11', 'B12']
     assets_60m = ['B01', 'B09']
     scl = 'SCL'
 
