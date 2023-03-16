@@ -165,13 +165,13 @@ def preprocess_scl(scl_data,
                  'scl_water_cover', 'scl_veg_cover',
                  'scl_notveg_cover']
 
-    aux = da.concat([obs,
-                     invalid_before,
-                     invalid_after,
-                     cover_snow,
-                     cover_water,
-                     cover_veg,
-                     cover_notveg], axis=0).astype(np.float32)
+    aux = da.concatenate([obs,
+                          invalid_before,
+                          invalid_after,
+                          cover_snow,
+                          cover_water,
+                          cover_veg,
+                          cover_notveg], axis=0).astype(np.float32)
     print(aux.shape)
 
     scl_aux = xr.DataArray(aux,
