@@ -348,16 +348,16 @@ def rvi(VH, VV):
     return (4 * VH) / (VV + VH)
 
 
-def _rsi_chunk(ts, bands, indices, clip=True):
+def _rsi_chunk(ts, bands, indices, clip=True, rsi_meta=None):
     st, sb, sy, sx = ts.shape
 
     nout = len(indices)
     out = np.zeros((st, nout, sy, sx), dtype=np.float32)
 
     for i, rsi in enumerate(indices):
-        rsi_meta = RSI_META_S2[rsi]
-        rsi_bands = rsi_meta['bands']
-        rsi_range_min, rsi_range_max = rsi_meta['range']
+        rsi_meta_ind = rsi_meta[rsi]
+        rsi_bands = rsi_meta_ind['bands']
+        rsi_range_min, rsi_range_max = rsi_meta_ind['range']
         rsi_func = get_rsi_function(rsi)
 
         bands_ids = [bands.index(b) for b in rsi_bands]
@@ -403,7 +403,8 @@ def rsi_ts(ts, indices, clip=True, rsi_meta=None):
         indices,
         dtype=ts.dtype,
         chunks=chunks,
-        clip=clip
+        clip=clip,
+        rsi_meta=rsi_meta,
     )
 
     new_darr = xr.DataArray(new_ts,
