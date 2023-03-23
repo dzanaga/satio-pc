@@ -10,11 +10,12 @@ import xarray as xr
 
 def _get_date_range(start, end, freq, window):
 
-    before = round(window / 2)
+    before, after = _get_before_after(window)
+
     start, end = parse_date(start), parse_date(end)
 
     date_range = pd.date_range(start=start + timedelta(days=before),
-                               end=end,
+                               end=end + timedelta(days=-after),
                                freq=f'{freq}D')
     return date_range
 
