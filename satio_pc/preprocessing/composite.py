@@ -64,22 +64,14 @@ def calculate_moving_composite(darr: xr.DataArray,
         raise ValueError('`window` value should be equal or greater than '
                          '`freq` value.')
 
-    before, after = _get_before_after(window)
-    date_range = _get_date_range(start, end, freq, before)
-
-    comp_shape = (darr.shape[0], len(date_range),
-                  darr.shape[2], darr.shape[3])
-
-    comp = da.zeros(comp_shape,
-                    chunks=(1, 1, comp_shape[2], comp_shape[3]),
-                    dtype=darr.dtype)
-    # comp = da.zeros(comp_shape,
-    #                 dtype=darr.dtype)
     time = darr.time.values
 
+    print(start, end)
     start = str(time[0])[:10] if start is None else start
     end = str(time[-1])[:10] if end is None else end
+    print(start, end)
 
+    before, after = _get_before_after(window)
     date_range = _get_date_range(start, end, freq, before)
 
     comp_shape = (len(date_range), darr.shape[1],
