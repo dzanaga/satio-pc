@@ -25,7 +25,7 @@ def calculate_moving_composite(darr: xr.DataArray,
                                window=None,
                                start=None,
                                end=None,
-                               use_all_obs=False):
+                               use_all_obs=True):
     """
     Calculate moving median composite of an hyper cube with shape [bands, time,
     rows, cols]
@@ -52,8 +52,7 @@ def calculate_moving_composite(darr: xr.DataArray,
         would be too short. Setting this `True` will include the last
         observations in the last available window, which will then span more
         days than the `window` value. This would avoid discarding observations
-        which would be used to increase the SNR of the last window but losing
-        temporal resolution.
+        which would be used to increase the SNR of the last window.
 
     Return
     ----------
@@ -138,14 +137,20 @@ def _get_invervals_flags(date_range,
 
     intervals_flags = []
     for i, d in enumerate(date_range):
+
+        if i == len(date_range) - 1 and use_all_obs:
+            tmp_after = None
+        else:
+            tmp_after = after
+
         idxs = interval_flag(
             pd.to_datetime(time_vector),
             d,
             before=before,
-            after=after)
+            after=tmp_after)
 
-        if (i == len(date_range) - 1) and use_all_obs:
-            idxs = _include_last_obs(idxs)
+        # if (i == len(date_range) - 1) and use_all_obs:
+        #     idxs = _include_last_obs(idxs)
 
         intervals_flags.append(idxs)
 
@@ -200,5 +205,9 @@ def interval_flag(time_vector,
         time_vector
     """
     midnight = datetime(date.year, date.month, date.day)
-    return ((time_vector >= midnight + timedelta(days=-before))
-            & (time_vector < midnight + timedelta(days=after + 1)))
+
+    if after is None:
+        return time_vector >= midnight + timedelta(days=-before)
+    else:
+        return ((time_vector >= midnight + timedelta(days=-before))
+                & (time_vector < midnight + timedelta(days=after + 1)))
