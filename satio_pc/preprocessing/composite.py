@@ -25,7 +25,8 @@ def calculate_moving_composite(darr: xr.DataArray,
                                window=None,
                                start=None,
                                end=None,
-                               use_all_obs=True):
+                               use_all_obs=True,
+                               ):
     """
     Calculate moving median composite of an hyper cube with shape [bands, time,
     rows, cols]
@@ -66,13 +67,10 @@ def calculate_moving_composite(darr: xr.DataArray,
 
     time = darr.time.values
 
-    print(start, end)
     start = str(time[0])[:10] if start is None else start
     end = str(time[-1])[:10] if end is None else end
-    print(start, end)
 
-    before, after = _get_before_after(window)
-    date_range = _get_date_range(start, end, freq, before)
+    date_range = _get_date_range(start, end, freq, window)
 
     comp_shape = (len(date_range), darr.shape[1],
                   darr.shape[2], darr.shape[3])
@@ -82,6 +80,7 @@ def calculate_moving_composite(darr: xr.DataArray,
                     dtype=darr.dtype)
 
     time = darr.time.values
+    before, after = _get_before_after(window)
     intervals_flags = _get_invervals_flags(date_range,
                                            time,
                                            before,
@@ -94,9 +93,9 @@ def calculate_moving_composite(darr: xr.DataArray,
             continue
         idxs = np.where(flag)[0]
 
-        for band_idx in range(comp.shape[1]):
-            comp[i, band_idx, ...] = nonzeromedian(darr.isel(time=idxs,
-                                                             band=band_idx))
+        # for band_idx in range(comp.shape[1]):
+        #     comp[i, band_idx, ...] = nonzero_nanmedian(darr.isel(time=idxs))
+        comp[i, ...] = nonzero_nanmedian(darr.isel(time=idxs))
 
     darr_out = xr.DataArray(comp,
                             dims=darr.dims,
@@ -107,18 +106,6 @@ def calculate_moving_composite(darr: xr.DataArray,
                             attrs=darr.attrs)
 
     return darr_out
-
-
-def _include_last_obs(idxs):
-
-    # check that all obs are used on last interval
-    true_flags = np.where(idxs)[0]
-    if true_flags.size:
-        last_true_idx = np.where(idxs)[0][-1]
-        if last_true_idx != idxs.size - 1:
-            idxs[last_true_idx:] = True
-
-    return idxs
 
 
 def _get_invervals_flags(date_range,
@@ -149,8 +136,9 @@ def _get_invervals_flags(date_range,
     return intervals_flags
 
 
-def nonzeromedian(arr):
-    """arr should be an xarray with dims (time, y, x)"""
+def nonzero_nanmedian(arr):
+    """Compute nanmedian on array. If array is not float32/float64,
+    the array is converted to float and 0 values are skipped"""
 
     start_dtype = arr.dtype
     if start_dtype not in (np.float32, np.float64):
