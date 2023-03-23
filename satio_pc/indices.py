@@ -378,12 +378,14 @@ def _rsi_chunk(ts, bands, indices, clip=True):
     return out
 
 
-def rsi_ts(ts, indices, clip=True):
+def rsi_ts(ts, indices, clip=True, rsi_meta=None):
+
+    rsi_meta = RSI_META_S2 if rsi_meta is None else rsi_meta
 
     if 'hsv' in indices:
         raise NotImplementedError('Unsupported, use "hsvv" and "hsvh"')
 
-    supported_rsis = list(RSI_META_S2.keys())
+    supported_rsis = list(rsi_meta.keys())
     unsupported = list(set(indices) - set(supported_rsis))
     if len(unsupported):
         raise ValueError(f"Remote sensing index '{unsupported}' not supported. "

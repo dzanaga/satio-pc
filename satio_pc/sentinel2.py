@@ -196,9 +196,9 @@ class ESAWorldCoverTimeSeries:
         out = self._obj.copy(data=darr_interp)
         return out
 
-    def s2indices(self, indices, clip=True):
+    def s2indices(self, indices, clip=True, rsi_meta=None):
         """Compute Sentinel-2 remote sensing indices"""
-        return rsi_ts(self._obj, indices, clip)
+        return rsi_ts(self._obj, indices, clip, rsi_meta=rsi_meta)
 
     def percentile(self, q=[10, 25, 50, 75, 90]):
         """Compute set of percentiles for the time-series bands"""
