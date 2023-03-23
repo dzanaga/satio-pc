@@ -163,6 +163,8 @@ def get_rsi_function(rsi_name, meta=None):
     """
     if meta is not None and 'func' in meta.keys():
         f = meta['func']
+        if f == 'norm_diff':
+            f = norm_diff
     else:
         if rsi_name in ['ndvi', 'ndmi', 'nbr', 'nbr2', 'ndwi', 'ndgi',
                         'ndre1', 'ndre2', 'ndre3', 'ndre4', 'ndre5',
@@ -171,6 +173,18 @@ def get_rsi_function(rsi_name, meta=None):
         else:
             f = getattr(sys.modules[__name__], rsi_name)
     return f
+
+
+def atsavi(B08, B04):
+    a = 1.22
+    b = 0.03
+    X = 0.08
+    return a * (B08 - a * B04 - b) / (a * B08 + B04 - a * b +
+                                      X * (1.0 + np.power(a, 2.0)))
+
+
+def lci(B08, B05, B04):
+    return (B08 - B05) / (B08 + B04)
 
 
 def evi(B08, B04, B02):
@@ -203,8 +217,16 @@ def anir(B04, B08, B11):
     return 1. / np.pi * np.arccos(site_length)
 
 
+def avi(B04, B08):
+    vi = np.power(B08 * (1.0 - B04) * (B08 - B04), 1./3.)
+    vi[B08 < B04] = 0
+    return vi
+
+
 def nirv(B08, B04):
-    return ((B08 - B04 / B08 + B04) - 0.08) * B08
+    nirv = ((B08 - B04 / B08 + B04) - 0.08) * B08
+    nirv[nirv < 0] = 0
+    return nirv
 
 
 def auc(B02, B03, B04, B08, B11, B12):
