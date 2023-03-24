@@ -358,7 +358,7 @@ def _rsi_chunk(ts, bands, indices, clip=True, rsi_meta=None):
         rsi_meta_ind = rsi_meta[rsi]
         rsi_bands = rsi_meta_ind['bands']
         rsi_range_min, rsi_range_max = rsi_meta_ind['range']
-        rsi_func = get_rsi_function(rsi)
+        rsi_func = get_rsi_function(rsi, meta=rsi_meta)
 
         bands_ids = [bands.index(b) for b in rsi_bands]
 
