@@ -1,17 +1,9 @@
-import atexit
+
 import tempfile
 import numpy as np
-import xarray as xr
-import dask.array as da
 from loguru import logger
 
-from satio_pc.preprocessing.composite import calculate_moving_composite
-from satio_pc.preprocessing.interpolate import interpolate_ts_linear
-from satio_pc.preprocessing.rescale import rescale_ts
-from satio_pc.preprocessing.speckle import multitemporal_speckle_ts
 from satio_pc.preprocessing.timer import FeaturesTimer
-from satio_pc.indices import rsi_ts
-from satio_pc.features import percentile
 
 
 def force_unique_time(darr):
@@ -94,14 +86,14 @@ def load_gamma0(bounds,
     return stack
 
 
-def preprocess_s2(stack,
-                  start_date,
-                  end_date,
-                  composite_freq=10,
-                  composite_window=20,
-                  speckle_kwargs=None,
-                  multitemp_speckle=True,
-                  tmpdir='.'):
+def preprocess_gamma0(stack,
+                      start_date,
+                      end_date,
+                      composite_freq=10,
+                      composite_window=20,
+                      speckle_kwargs=None,
+                      multitemp_speckle=True,
+                      tmpdir='.'):
 
     if speckle_kwargs is None:
         speckle_kwargs = dict(kernel='gamma',
