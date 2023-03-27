@@ -8,6 +8,7 @@ from loguru import logger
 from satio_pc.preprocessing.composite import calculate_moving_composite
 from satio_pc.preprocessing.interpolate import interpolate_ts_linear
 from satio_pc.preprocessing.rescale import rescale_ts
+from satio_pc.preprocessing.speckle import multitemporal_speckle_ts
 from satio_pc.preprocessing.timer import FeaturesTimer
 from satio_pc.indices import rsi_ts
 from satio_pc.features import percentile
@@ -195,6 +196,9 @@ class ESAWorldCoverTimeSeries:
 
         out = self._obj.copy(data=darr_interp)
         return out
+
+    def multitemporal_speckle(self, kernel='gamma', mtwin=7, enl=3):
+        return multitemporal_speckle_ts(self._obj, kernel, mtwin, enl)
 
     def s2indices(self, indices, clip=True, rsi_meta=None):
         """Compute Sentinel-2 remote sensing indices"""
