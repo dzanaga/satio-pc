@@ -69,5 +69,6 @@ class FeaturesTimer():
 
         self.load = TaskTimer(f'{resolution}m loading')
         self.composite = TaskTimer(f'{resolution}m compositing')
+        self.speckle = TaskTimer(f'{resolution}m speckle filtering')
         self.interpolate = TaskTimer(f'{resolution}m interpolation')
         self.features = TaskTimer(f'{resolution}m features computation')

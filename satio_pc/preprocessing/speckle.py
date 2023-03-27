@@ -3,16 +3,18 @@ from scipy import ndimage
 import dask.array as da
 
 
-def gamma_kernel(img, size, ENL, ndv):
+def gamma_kernel(img, size, ENL):
 
-    img[img == ndv] = 0.
+    nodata = np.isnan(img)
+    img[nodata] = 0
+
     sig_v2 = 1.0 / ENL
     ENL2 = ENL + 1.
     sfak = 1.0 + sig_v2
     img_mean2 = ndimage.uniform_filter(pow(img, 2), size=size)
-    img_mean2[img == ndv] = 0.
+    img_mean2[nodata | np.isnan(img_mean2)] = 0.
     img_mean = ndimage.uniform_filter(img, size=size)
-    img_mean[img == ndv] = 0.
+    img_mean[nodata | np.isnan(img_mean)] = 0.
     var_z = img_mean2 - pow(img_mean, 2)
     out = img_mean
 
@@ -28,7 +30,8 @@ def gamma_kernel(img, size, ENL, ndv):
             q = ENL * img_mean * img / n
             out[mask] = -phalf[mask] + np.sqrt(pow(phalf[mask], 2) + q[mask])
 
-    out[img == 0.] = ndv
+    out[img == 0 | nodata] = np.nan
+
     return out
 
 
@@ -43,7 +46,12 @@ def multitemporal_speckle_filter(stack, kernel, mtwin=7, enl=3):
     mtwin: filter window size - recommended mtwin=7
 
     enl: only required for kernel 'gamma' - recommended for S1 enl = 3
+
+    Assumes the data to be in float with nans as nodata.
     """
+    nodata = np.isnan(stack)
+    stack[nodata] = 0
+
     layers, rows, cols = stack.shape
     filtim = np.zeros_like(stack, dtype=np.float32)
 
@@ -63,7 +71,7 @@ def multitemporal_speckle_filter(stack, kernel, mtwin=7, enl=3):
             rcs = ndimage.gaussian_filter(
                 stack[idx], mtwin / 4, mode='mirror')
         elif kernel == 'gamma':
-            rcs = gamma_kernel(stack[idx], mtwin, enl, 0)
+            rcs = gamma_kernel(stack[idx], mtwin, enl)
 
         with np.errstate(divide='ignore', invalid='ignore'):
             ratio = (stack[idx] / rcs)
@@ -77,6 +85,7 @@ def multitemporal_speckle_filter(stack, kernel, mtwin=7, enl=3):
         for idx in range(0, layers):
             im = stack[idx]
             filtim1 = image_fil[idx] * image_sum / image_num
+
             filtim1[np.isnan(filtim1)] = 0
             fillmask = (filtim1 == 0) & (im > 0)
             filtim1[fillmask] = im[fillmask]
@@ -84,10 +93,15 @@ def multitemporal_speckle_filter(stack, kernel, mtwin=7, enl=3):
             filtim1[mask == 0] = im[mask == 0]
             filtim[idx] = filtim1
 
+    filtim[nodata] = np.nan
+
     return filtim
 
 
-def _multitemporal_speckle_ts(ts, kernel='gamma', mtwin=7, enl=3):
+def _multitemporal_speckle_ts(ts,
+                              kernel='gamma',
+                              mtwin=7,
+                              enl=3):
 
     nbands = ts.shape[1]
 
@@ -103,7 +117,10 @@ def _multitemporal_speckle_ts(ts, kernel='gamma', mtwin=7, enl=3):
     return ts_fil
 
 
-def multitemporal_speckle_ts(dxarr, kernel='gamma', mtwin=7, enl=3):
+def multitemporal_speckle_ts(dxarr,
+                             kernel='gamma',
+                             mtwin=7,
+                             enl=3):
 
     chunks = list(dxarr.chunks)
 
