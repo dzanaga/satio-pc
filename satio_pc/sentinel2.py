@@ -197,7 +197,7 @@ class ESAWorldCoverTimeSeries:
         out = self._obj.copy(data=darr_interp)
         return out
 
-    def multitemporal_speckle(self, kernel='gamma', mtwin=7, enl=3):
+    def multitemporal_speckle(self, kernel='gamma', mtwin=15, enl=7):
         return multitemporal_speckle_ts(self._obj, kernel, mtwin, enl)
 
     def s2indices(self, indices, clip=True, rsi_meta=None):

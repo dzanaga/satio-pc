@@ -83,6 +83,16 @@ def load_gamma0(bounds,
     stack = stack.drop_vars(drop_vars)
     stack = force_unique_time(stack)
 
+    str_vars = ['id',
+                'end_datetime',
+                'start_datetime',
+                'sat:absolute_orbit',
+                'sat:orbit_state',
+                'sat:relative_orbit',
+                's1:datatake_id',]
+    for v in str_vars:
+        stack[v] = stack[v].astype(str)
+
     return stack
 
 
@@ -98,7 +108,7 @@ def preprocess_gamma0(stack,
     if speckle_kwargs is None:
         speckle_kwargs = dict(kernel='gamma',
                               mtwin=15,
-                              enl=6)
+                              enl=7)
 
     timer10 = FeaturesTimer(10)
 
@@ -107,7 +117,7 @@ def preprocess_gamma0(stack,
         # download
         logger.info("Loading block data")
         timer10.load.start()
-        stack = stack.satio.cache(tmpdirname)
+        stack = stack.satio.cache(tmpdirname.name)
         timer10.load.stop()
 
         # 10m
@@ -115,8 +125,8 @@ def preprocess_gamma0(stack,
         logger.info("Applying multi-temporal speckle filter")
         if multitemp_speckle:
             timer10.speckle.start()
-            stack_fil = (stack.satio.multitemporal_speckle(*speckle_kwargs)
-                         .satio.cache(tmpdirname))
+            stack_fil = (stack.satio.multitemporal_speckle(**speckle_kwargs)
+                         .satio.cache(tmpdirname.name))
             timer10.speckle.stop()
         else:
             stack_fil = stack
@@ -127,7 +137,7 @@ def preprocess_gamma0(stack,
             freq=composite_freq,
             window=composite_window,
             start=start_date,
-            end=end_date).satio.cache(tmpdirname)
+            end=end_date).satio.cache(tmpdirname.name)
         timer10.composite.stop()
 
         logger.info("Interpolating 10m block data")
