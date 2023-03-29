@@ -62,9 +62,6 @@ class TaskTimer:
         self._running = False
         self._total = 0
 
-    def __radd__(self, other):
-        return other + self.total
-
 
 class FeaturesTimer():
 
@@ -82,14 +79,11 @@ class FeaturesTimer():
 
     @property
     def total(self):
-        return (self.load +
-                self.composite +
-                self.speckle +
-                self.interpolate +
-                self.features)
-
-    def __radd__(self, other):
-        return other + self.total
+        return (self.load.total +
+                self.composite.total +
+                self.speckle.total +
+                self.interpolate.total +
+                self.features.total)
 
     def log(self, level='INFO'):
         logger.log(level,
