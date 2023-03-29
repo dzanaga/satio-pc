@@ -4,31 +4,28 @@ import numpy as np
 from loguru import logger
 
 from satio_pc.preprocessing.timer import FeaturesTimer
+from satio_pc.sentinel2 import force_unique_time
+from satio_pc.errors import NoGamma0Products
 
 
-def force_unique_time(darr):
-    """Add microseconds to time vars which repeats in order to make the
-    time index of the DataArray unique, as sometimes observations from the same
-    day can be split in multiple obs"""
-    unique_ts, counts_ts = np.unique(darr.time, return_counts=True)
-    double_ts = unique_ts[np.where(counts_ts > 1)]
+def lin_to_db(lin):
+    '''
+    Helper function to transform dB to power units
+    '''
+    return 10 * np.log10(lin)
 
-    new_time = []
-    c = 0
-    for i in range(darr.time.size):
-        v = darr.time[i].values
-        if v in double_ts:
-            v = v + c
-            c += 1
-        new_time.append(v)
-    new_time = np.array(new_time)
-    darr['time'] = new_time
-    return darr
+
+def db_to_lin(db):
+    '''
+    Helper function to transform power to dB units
+    '''
+    return np.power(10, db / 10)
 
 
 def load_gamma0(bounds,
                 epsg,
-                time_range):
+                start_date,
+                end_date):
     import stackstac
     import pystac_client
     import planetary_computer as pc
@@ -44,6 +41,8 @@ def load_gamma0(bounds,
         modifier=pc.sign_inplace
     )
 
+    time_range = f"{start_date}/{end_date}"
+
     search = catalog.search(
         collections=[collection],
         bbox=ll_bounds,
@@ -52,7 +51,7 @@ def load_gamma0(bounds,
 
     items = search.item_collection()
     if len(items) == 0:
-        print("no overlaps found")
+        raise NoGamma0Products("No data for given bounds")
 
     stack = stackstac.stack(items,
                             assets=['vv', 'vh'],
@@ -89,7 +88,7 @@ def load_gamma0(bounds,
                 'sat:absolute_orbit',
                 'sat:orbit_state',
                 'sat:relative_orbit',
-                's1:datatake_id',]
+                's1:datatake_id']
     for v in str_vars:
         stack[v] = stack[v].astype(np.dtype('U25'))
 
@@ -101,23 +100,25 @@ def preprocess_gamma0(stack,
                       end_date,
                       composite_freq=10,
                       composite_window=20,
-                      speckle_kwargs=None,
                       multitemp_speckle=True,
+                      speckle_kernel='gamma',
+                      speckle_mtwin=15,
+                      speckle_enl=7,
                       tmpdir='.'):
 
-    if speckle_kwargs is None:
-        speckle_kwargs = dict(kernel='gamma',
-                              mtwin=15,
-                              enl=7)
+    speckle_kwargs = dict(kernel=speckle_kernel,
+                          mtwin=speckle_mtwin,
+                          enl=speckle_enl)
 
     timer10 = FeaturesTimer(10)
 
-    with tempfile.TemporaryDirectory(prefix='satio_tmp-', dir=tmpdir) as tmpdirname:
+    with tempfile.TemporaryDirectory(prefix='ewc_tmp-', dir=tmpdir) as \
+            tmpdirname:
 
         # download
         logger.info("Loading block data")
         timer10.load.start()
-        stack = stack.satio.cache(tmpdirname)
+        stack = stack.ewc.cache(tmpdirname)
         timer10.load.stop()
 
         # 10m
@@ -125,26 +126,26 @@ def preprocess_gamma0(stack,
         logger.info("Applying multi-temporal speckle filter")
         if multitemp_speckle:
             timer10.speckle.start()
-            stack_fil = (stack.satio.multitemporal_speckle(**speckle_kwargs)
-                         .satio.cache(tmpdirname))
+            stack_fil = (stack.ewc.multitemporal_speckle(**speckle_kwargs)
+                         .ewc.cache(tmpdirname))
             timer10.speckle.stop()
         else:
             stack_fil = stack
 
         logger.info("Compositing 10m block data")
         # composite
-        stack_comp = stack_fil.satio.composite(
+        stack_comp = stack_fil.ewc.composite(
             freq=composite_freq,
             window=composite_window,
             start=start_date,
-            end=end_date).satio.cache(tmpdirname)
+            end=end_date).ewc.cache(tmpdirname)
         timer10.composite.stop()
 
         logger.info("Interpolating 10m block data")
         # interpolation
         timer10.interpolate.start()
-        stack_interp = stack_comp.satio.interpolate(
-        ).satio.cache()
+        stack_interp = stack_comp.ewc.interpolate(
+        ).ewc.cache(tmpdir)
         timer10.interpolate.stop()
 
         timer10.load.log()
