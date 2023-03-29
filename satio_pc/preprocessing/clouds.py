@@ -162,7 +162,7 @@ def preprocess_scl(scl_data,
     mask = mask.assign_coords(band='SCL')
     mask = mask.expand_dims('band', axis=1)
 
-    aux_names = ['l2a_obs', 'scl_invalid_before',
+    aux_names = ['obs_l2a', 'scl_invalid_before',
                  'scl_invalid_after', 'scl_snow_cover',
                  'scl_water_cover', 'scl_veg_cover',
                  'scl_notveg_cover']
