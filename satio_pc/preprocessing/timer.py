@@ -65,7 +65,7 @@ class TaskTimer:
 
 class FeaturesTimer():
 
-    def __init__(self, resolution, sensor=None):
+    def __init__(self, resolution, sensor=''):
 
         self._resolution = resolution
         self._sensor = sensor
