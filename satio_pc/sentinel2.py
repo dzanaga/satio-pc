@@ -151,18 +151,20 @@ def load_l2a(bounds,
             # harmonize values for processing baseline 4.0 (25th Jan 2022)
             ds[res] = ds[res].ewc.harmonize()
 
-    return ds[10], ds[20], ds[60], ds['scl']
+    return ds
 
 
-def preprocess_l2a(ds10_block,
-                   ds20_block,
-                   scl20_block,
+def preprocess_l2a(ds_dict,
                    start_date,
                    end_date,
                    composite_freq=10,
                    composite_window=20,
                    reflectance=True,
                    tmpdir='.'):
+
+    ds10_block = ds_dict[10]
+    ds20_block = ds_dict[20]
+    scl20_block = ds_dict['scl']
 
     timer10 = FeaturesTimer(10)
     timer20 = FeaturesTimer(20)
