@@ -91,7 +91,7 @@ def load_gamma0(bounds,
                 'sat:relative_orbit',
                 's1:datatake_id',]
     for v in str_vars:
-        stack[v] = stack[v].astype(str)
+        stack[v] = stack[v].astype(np.dtype('U25'))
 
     return stack
 
@@ -117,7 +117,7 @@ def preprocess_gamma0(stack,
         # download
         logger.info("Loading block data")
         timer10.load.start()
-        stack = stack.satio.cache(tmpdirname.name)
+        stack = stack.satio.cache(tmpdirname)
         timer10.load.stop()
 
         # 10m
@@ -126,7 +126,7 @@ def preprocess_gamma0(stack,
         if multitemp_speckle:
             timer10.speckle.start()
             stack_fil = (stack.satio.multitemporal_speckle(**speckle_kwargs)
-                         .satio.cache(tmpdirname.name))
+                         .satio.cache(tmpdirname))
             timer10.speckle.stop()
         else:
             stack_fil = stack
@@ -137,7 +137,7 @@ def preprocess_gamma0(stack,
             freq=composite_freq,
             window=composite_window,
             start=start_date,
-            end=end_date).satio.cache(tmpdirname.name)
+            end=end_date).satio.cache(tmpdirname)
         timer10.composite.stop()
 
         logger.info("Interpolating 10m block data")
