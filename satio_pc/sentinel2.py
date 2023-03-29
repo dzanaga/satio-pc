@@ -1,5 +1,4 @@
 import tempfile
-import warnings
 
 import numpy as np
 import xarray as xr
@@ -155,16 +154,15 @@ def load_l2a(bounds,
     return ds[10], ds[20], ds[60], ds['scl']
 
 
-
-def preprocess_s2(ds10_block,
-                  ds20_block,
-                  scl20_block,
-                  start_date,
-                  end_date,
-                  composite_freq=10,
-                  composite_window=20,
-                  reflectance=True,
-                  tmpdir='.'):
+def preprocess_l2a(ds10_block,
+                   ds20_block,
+                   scl20_block,
+                   start_date,
+                   end_date,
+                   composite_freq=10,
+                   composite_window=20,
+                   reflectance=True,
+                   tmpdir='.'):
 
     timer10 = FeaturesTimer(10)
     timer20 = FeaturesTimer(20)
