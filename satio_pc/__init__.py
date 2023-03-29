@@ -2,7 +2,7 @@ import concurrent.futures
 from tqdm.auto import tqdm
 try:
     import satio_pc.layers  # NOQA
-    from satio_pc.sentinel2 import ESAWorldCoverTimeSeries  # noqa
+    from satio_pc.extension import ESAWorldCoverTimeSeries  # noqa
 except Exception:
     # skip error in make recipes that need version outside dev env
     pass
