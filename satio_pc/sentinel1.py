@@ -162,4 +162,6 @@ def preprocess_gamma0(s1,
         timer10.composite.log()
         timer10.interpolate.log()
 
+        timer10.log()
+
     return s1_interp, obs_gamma0

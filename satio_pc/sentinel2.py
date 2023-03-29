@@ -250,6 +250,9 @@ def preprocess_l2a(ds_dict,
             t.composite.log()
             t.interpolate.log()
 
+        for t in timer10, timer20:
+            t.log()
+
     dsm10 = dsm10.ewc.cache(tmpdir)
 
     return dsm10
