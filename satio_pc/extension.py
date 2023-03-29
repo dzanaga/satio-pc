@@ -65,9 +65,9 @@ class ESAWorldCoverTimeSeries:
         """Compute Sentinel-2 / Sentinel-1 remote sensing indices"""
         return rsi_ts(self._obj, indices, clip, rsi_meta=rsi_meta)
 
-    def percentile(self, q=[10, 25, 50, 75, 90]):
+    def percentile(self, q=[10, 25, 50, 75, 90], name_prefix='s2'):
         """Compute set of percentiles for the time-series bands"""
-        return percentile(self._obj, q)
+        return percentile(self._obj, q, name_prefix=name_prefix)
 
     @property
     def bounds(self):
