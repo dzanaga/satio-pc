@@ -147,7 +147,7 @@ def load_l2a(bounds,
         for v in ['id', 'band', 's2:processing_baseline']:
             ds[res][v] = ds[res][v].astype(str)
 
-        for res in 10, 20, 60:
+        if res in (10, 20, 60):
             # harmonize values for processing baseline 4.0 (25th Jan 2022)
             ds[res] = ds[res].ewc.harmonize()
 
