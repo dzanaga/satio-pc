@@ -155,6 +155,7 @@ def load_l2a(bounds,
 
 
 def preprocess_l2a(ds_dict,
+                   clouds_mask,
                    start_date,
                    end_date,
                    composite_freq=10,
@@ -164,7 +165,7 @@ def preprocess_l2a(ds_dict,
 
     ds10_block = ds_dict[10]
     ds20_block = ds_dict[20]
-    scl20_block = ds_dict['scl']
+    scl20_block = clouds_mask
 
     timer10 = FeaturesTimer(10)
     timer20 = FeaturesTimer(20)
