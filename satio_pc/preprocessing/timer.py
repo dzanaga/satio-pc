@@ -63,7 +63,7 @@ class TaskTimer:
         self._total = 0
 
     def __radd__(self, other):
-        return self.total + other.total
+        return other + self.total
 
 
 class FeaturesTimer():
@@ -89,7 +89,7 @@ class FeaturesTimer():
                 self.features)
 
     def __radd__(self, other):
-        return self.total + other.total
+        return other + self.total
 
     def log(self, level='INFO'):
         logger.log(level,
