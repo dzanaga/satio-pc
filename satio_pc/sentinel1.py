@@ -133,6 +133,7 @@ def preprocess_gamma0(stack,
 
         logger.info("Compositing 10m block data")
         # composite
+        timer10.composite.start()
         stack_comp = stack_fil.satio.composite(
             freq=composite_freq,
             window=composite_window,
