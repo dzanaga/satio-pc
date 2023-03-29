@@ -1,3 +1,4 @@
+import warnings
 import atexit
 import tempfile
 import xarray as xr
@@ -94,8 +95,10 @@ class ESAWorldCoverTimeSeries:
 
         chunks = self._obj.chunks if chunks is None else chunks
 
-        self._obj.to_netcdf(tmpfile.name)
-        darr = xr.open_dataarray(tmpfile.name).chunk(chunks)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            self._obj.to_netcdf(tmpfile.name)
+            darr = xr.open_dataarray(tmpfile.name).chunk(chunks)
 
         atexit.register(tmpfile.close)
         return darr
