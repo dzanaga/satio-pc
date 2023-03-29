@@ -62,10 +62,16 @@ class TaskTimer:
         self._running = False
         self._total = 0
 
+    def __radd__(self, other):
+        return self.total + other.total
+
 
 class FeaturesTimer():
 
     def __init__(self, resolution, sensor=None):
+
+        self._resolution = resolution
+        self._sensor = sensor
 
         self.load = TaskTimer(f'{sensor} {resolution}m loading')
         self.composite = TaskTimer(f'{sensor} {resolution}m compositing')
@@ -73,3 +79,19 @@ class FeaturesTimer():
         self.interpolate = TaskTimer(f'{sensor} {resolution}m interpolation')
         self.features = TaskTimer(f'{sensor} {resolution}m '
                                   'features computation')
+
+    @property
+    def total(self):
+        return (self.load +
+                self.composite +
+                self.speckle +
+                self.interpolate +
+                self.features)
+
+    def __radd__(self, other):
+        return self.total + other.total
+
+    def log(self, level='INFO'):
+        logger.log(level,
+                   f"{self._sensor} {self._resolution}m processing took: "
+                   f"{self.total:.2f} minutes")
