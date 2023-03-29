@@ -167,8 +167,8 @@ def preprocess_l2a(ds_dict,
     ds20_block = ds_dict[20]
     scl20_block = clouds_mask
 
-    timer10 = FeaturesTimer(10)
-    timer20 = FeaturesTimer(20)
+    timer10 = FeaturesTimer(10, 'l2a')
+    timer20 = FeaturesTimer(20, 'l2a')
 
     with tempfile.TemporaryDirectory(prefix='ewc_tmp-', dir=tmpdir) as \
             tmpdirname:

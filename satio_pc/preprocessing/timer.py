@@ -65,10 +65,11 @@ class TaskTimer:
 
 class FeaturesTimer():
 
-    def __init__(self, resolution):
+    def __init__(self, resolution, sensor=None):
 
-        self.load = TaskTimer(f'{resolution}m loading')
-        self.composite = TaskTimer(f'{resolution}m compositing')
-        self.speckle = TaskTimer(f'{resolution}m speckle filtering')
-        self.interpolate = TaskTimer(f'{resolution}m interpolation')
-        self.features = TaskTimer(f'{resolution}m features computation')
+        self.load = TaskTimer(f'{sensor} {resolution}m loading')
+        self.composite = TaskTimer(f'{sensor} {resolution}m compositing')
+        self.speckle = TaskTimer(f'{sensor} {resolution}m speckle filtering')
+        self.interpolate = TaskTimer(f'{sensor} {resolution}m interpolation')
+        self.features = TaskTimer(f'{sensor} {resolution}m '
+                                  'features computation')

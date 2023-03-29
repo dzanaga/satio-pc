@@ -110,7 +110,7 @@ def preprocess_gamma0(stack,
                           mtwin=speckle_mtwin,
                           enl=speckle_enl)
 
-    timer10 = FeaturesTimer(10)
+    timer10 = FeaturesTimer(10, 'gamma0')
 
     with tempfile.TemporaryDirectory(prefix='ewc_tmp-', dir=tmpdir) as \
             tmpdirname:
@@ -133,7 +133,7 @@ def preprocess_gamma0(stack,
             stack_fil = stack
 
         logger.info("Compositing 10m block data")
-        # composite
+        timer10.composite.start()
         stack_comp = stack_fil.ewc.composite(
             freq=composite_freq,
             window=composite_window,
