@@ -32,7 +32,7 @@ McFeeters, S. K. (1996). The use of the Normalized Difference Water Index (NDWI)
 Rouse, J. W., Haas, R. H., Schell, J. A., & Deering, D. W. (1974). Monitoring vegetation systems in the Great Plains with ERTS. NASA special publication, 351(1974), 309.
 
 Tucker, C. J. (1979). Red and photographic infrared linear combinations for monitoring vegetation. Remote sensing of Environment, 8(2), 127-150.
-"""
+"""  # noqa
 import sys
 import numpy as np
 import dask.array as da
@@ -124,11 +124,11 @@ RSI_META_S2 = {
 
 RSI_META_S1 = {
     'vh_vv': {
-        'bands': ['VH', 'VV'],
-        'range': [-20, 0]},
+        'bands': ['vh', 'vv'],
+        'range': [0, 3]},
     'rvi': {
-        'bands': ['VH', 'VV'],
-        'range': [0, 2]}
+        'bands': ['vh', 'vv'],
+        'range': [0, 3]}
 }
 
 RSI_META = {'S2': RSI_META_S2,
@@ -304,47 +304,29 @@ def brightness(B03, B04, B08, B11):
                    + np.power(B08, 2) + np.power(B11, 2))
 
 
-def _to_db(pwr):
-    '''
-    Helper function to transform dB to power units
-    '''
-    return 10 * np.log10(pwr)
-
-
-def _to_pwr(db):
-    '''
-    Helper function to transform power to dB units
-    '''
-    return np.power(10, db / 10)
-
-
 def vh_vv(VH, VV):
-    """Function to calculate VH/VV ratio in dB
+    """Function to calculate VH/VV ratio
 
     Args:
-        VH: VH time series in decibels
-        VV: VV time series in decibels
+        VH: VH time series (linear scaling)
+        VV: VV time series (linear scaling)
 
     Returns:
         ndarray: VH/VV ratio in decibels
     """
-    # Calculte ratio using logarithm rules
-    return VH - VV
+    return VH / VV
 
 
 def rvi(VH, VV):
     """Function to calculate radar vegetation index
 
     Args:
-        VH: VH time series in decibels
-        VV: VV time series in decibels
+        VH: VH time series (linear scaling)
+        VV: VV time series (linear scaling)
 
     Returns:
         ndarray: RVI [dimensionless]
     """
-    VH = _to_pwr(VH)
-    VV = _to_pwr(VV)
-
     return (4 * VH) / (VV + VH)
 
 
@@ -380,7 +362,7 @@ def _rsi_chunk(ts, bands, indices, clip=True, rsi_meta=None):
 
 def rsi_ts(ts, indices, clip=True, rsi_meta=None):
 
-    rsi_meta = RSI_META_S2 if rsi_meta is None else rsi_meta
+    rsi_meta = {**RSI_META_S2, **RSI_META_S1} if rsi_meta is None else rsi_meta
 
     if 'hsv' in indices:
         raise NotImplementedError('Unsupported, use "hsvv" and "hsvh"')
@@ -388,8 +370,8 @@ def rsi_ts(ts, indices, clip=True, rsi_meta=None):
     supported_rsis = list(rsi_meta.keys())
     unsupported = list(set(indices) - set(supported_rsis))
     if len(unsupported):
-        raise ValueError(f"Remote sensing index '{unsupported}' not supported. "
-                         f"Supported indices: {supported_rsis}")
+        raise ValueError(f"Remote sensing index '{unsupported}' not supported."
+                         f" Supported indices: {supported_rsis}")
 
     chunks = list(ts.chunks)
 
