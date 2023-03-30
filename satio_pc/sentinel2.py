@@ -1,11 +1,63 @@
 import tempfile
+import xml.etree.ElementTree as ET
 
+import requests
 import numpy as np
 import xarray as xr
 import dask.array as da
 from loguru import logger
 
+from satio_pc import parallelize
 from satio_pc.preprocessing.timer import FeaturesTimer
+
+
+def get_quality_values(item):
+    meta_url = item.assets['product-metadata'].href
+    response = requests.get(meta_url)
+    xml_content = response.content
+
+    root = ET.fromstring(xml_content)
+
+    # find the Quality_Inspections element and get all the quality_check sub-elements
+    quality_checks = root.find(
+        './/Quality_Inspections').findall('quality_check')
+
+    # create a dictionary to store the quality values
+    quality_values = {}
+
+    # iterate over the quality_check elements and extract the checkType and PASSED/FAILED value
+    for qc in quality_checks:
+        check_type = qc.attrib['checkType']
+        value = qc.text
+        quality_values[check_type] = value
+
+    return quality_values
+
+
+def quality_passed(item):
+    quality = get_quality_values(item)
+    for k, v in quality.items():
+        if v != 'PASSED':
+            return False
+    return True
+
+
+def filter_corrupted_items(items, workers=10, verbose=True):
+    valid_flag = parallelize(quality_passed,
+                             items,
+                             max_workers=workers,
+                             progressbar=False)
+    if verbose:
+        corrupted_items_ids = [item.id for item, flag in zip(items, valid_flag)
+                               if not flag]
+        nc = len(corrupted_items_ids)
+        if nc:
+            logger.warning(f"Discarding {nc} / {len(items)} corrupted "
+                           f"products: {corrupted_items_ids}")
+
+    items.items = [i for i, flag in zip(items, valid_flag) if flag]
+
+    return items
 
 
 def mask_clouds(darr, scl_mask):
@@ -85,7 +137,8 @@ def load_l2a(bounds,
              tile,
              start_date,
              end_date,
-             max_cloud_cover=90):
+             max_cloud_cover=90,
+             filter_corrupted=True):
     import pystac_client
     import planetary_computer
     import stackstac
@@ -104,6 +157,9 @@ def load_l2a(bounds,
                             datetime=time_range,
                             query=query_params)
     items = search.get_all_items()
+
+    if filter_corrupted:
+        items = filter_corrupted_items(items)
 
     assets_10m = ['B02', 'B03', 'B04', 'B08']
     assets_20m = ['B05', 'B06', 'B07', 'B8A', 'B11', 'B12']
