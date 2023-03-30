@@ -7,6 +7,7 @@ import xarray as xr
 import dask.array as da
 from loguru import logger
 
+import satio_pc  # noqa register extension
 from satio_pc import parallelize
 from satio_pc.preprocessing.timer import FeaturesTimer
 
