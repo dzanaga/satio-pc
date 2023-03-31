@@ -133,16 +133,13 @@ def harmonize(data):
     return xr.concat([old, new], dim="time")
 
 
-def load_l2a(bounds,
-             epsg,
-             tile,
-             start_date,
-             end_date,
-             max_cloud_cover=90,
-             filter_corrupted=True):
+def query_l2a_items(tile,
+                    start_date,
+                    end_date,
+                    max_cloud_cover,
+                    filter_corrupted):
     import pystac_client
     import planetary_computer
-    import stackstac
     from satio_pc.extension import ESAWorldCoverTimeSeries  # noqa register extension
 
     catalog = pystac_client.Client.open(
@@ -162,6 +159,24 @@ def load_l2a(bounds,
 
     if filter_corrupted:
         items = filter_corrupted_items(items)
+
+    return items
+
+
+def load_l2a(bounds,
+             epsg,
+             tile,
+             start_date,
+             end_date,
+             max_cloud_cover=90,
+             filter_corrupted=True):
+    import stackstac
+
+    items = query_l2a_items(tile,
+                            start_date,
+                            end_date,
+                            max_cloud_cover,
+                            filter_corrupted)
 
     assets_10m = ['B02', 'B03', 'B04', 'B08']
     assets_20m = ['B05', 'B06', 'B07', 'B8A', 'B11', 'B12']
