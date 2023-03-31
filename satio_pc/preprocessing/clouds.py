@@ -61,10 +61,10 @@ class SCLMask:
 
 
 def preprocess_scl(scl_data,
-                   mask_values=None,
                    erode_r=None,
                    dilate_r=None,
-                   max_invalid_ratio=None):
+                   max_invalid_ratio=None,
+                   max_invalid_snow_cover=0.95):
     """
     From a timeseries (t, y, x) dataarray returns a binary mask False for the
     given mask_values and True elsewhere (valid pixels).
@@ -84,13 +84,12 @@ def preprocess_scl(scl_data,
         'snow': 11
     }
 
+    Default SCL_MASK_VALUES = [1, 3, 8, 9, 10, 11]
+
     Parameters:
     -----------
     slc_data: 3D array
         Input array for computing the mask
-
-    mask_values: list
-        values to set to False in the mask
 
     erode_r : int
         Radius for eroding disk on the mask
@@ -101,6 +100,10 @@ def preprocess_scl(scl_data,
     max_invalid_ratio : float
         Will set mask values to True, when they have an
         invalid_ratio > max_invalid_ratio
+
+    snow_mask_invalid_ratio : float
+        If the ratio of snow obs is above this threshold,
+        snow will not be masked.
 
     Returns:
     --------
@@ -119,10 +122,12 @@ def preprocess_scl(scl_data,
         scl_veg_cover : ratio of veg obs
         scl_notveg_cover : ratio of notveg obs
     """
+    clouds_values = [3, 8, 9, 10]
+
     scl_data = scl_data.sel(band='SCL')
 
-    mask_values = SCL_MASK_VALUES
-    mask = da.isin(scl_data, mask_values)
+    clouds = da.isin(scl_data, clouds_values)
+    saturated = scl_data == SCL_LEGEND['saturated_or_defective']
     snow = scl_data == SCL_LEGEND['snow']
     water = scl_data == SCL_LEGEND['water']
     veg = scl_data == SCL_LEGEND['vegetation']
@@ -131,22 +136,28 @@ def preprocess_scl(scl_data,
     ts_obs = scl_data != 0
     obs = ts_obs.sum(axis=0).astype(np.float32)
 
-    ma_mask = (mask & ts_obs)
-    invalid_before = ma_mask.sum(axis=0) / obs
-
+    cover_clouds = (clouds & ts_obs).sum(axis=0) / obs
     cover_snow = (snow & ts_obs).sum(axis=0) / obs
     cover_water = (water & ts_obs).sum(axis=0) / obs
     cover_veg = (veg & ts_obs).sum(axis=0) / obs
     cover_notveg = (notveg & ts_obs).sum(axis=0) / obs
 
+    # we want to avoid masking snow pixels if they are snow >95% of valid obs
+    invalid_snow = (cover_clouds + cover_snow) <= max_invalid_snow_cover  # 2d
+    snow_mask = snow & da.broadcast_to(invalid_snow, snow.shape)
+
+    ma_mask = ((clouds | saturated | snow_mask) & ts_obs)
+    invalid_before = ma_mask.sum(axis=0) / obs
+
     if (erode_r is not None) | (erode_r > 0):
         e = footprints.disk(erode_r)
-        mask = da.stack([binary_erosion(m, e) for m in mask])
+        clouds = da.stack([binary_erosion(m, e) for m in clouds])
 
     if (dilate_r is not None) | (dilate_r > 0):
         d = footprints.disk(dilate_r)
-        mask = da.stack([binary_dilation(m, d) for m in mask])
+        clouds = da.stack([binary_dilation(m, d) for m in clouds])
 
+    mask = (clouds | saturated | snow_mask)
     ma_mask = (mask & ts_obs)
     invalid_after = ma_mask.sum(axis=0) / obs
 
