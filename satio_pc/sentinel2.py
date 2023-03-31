@@ -217,6 +217,7 @@ def preprocess_l2a(ds_dict,
                    end_date,
                    composite_freq=10,
                    composite_window=20,
+                   composite_mode='median',
                    reflectance=True,
                    tmpdir='.'):
 
