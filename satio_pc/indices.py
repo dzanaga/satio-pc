@@ -43,6 +43,9 @@ RSI_META_S2 = {
     'ndvi': {'bands': ['B08', 'B04'],
              'range': [-1, 1]},
 
+    'kndvi': {'bands': ['B08', 'B04'],
+              'range': [-1, 1]},
+
     # NDWI (Gao, 1996)
     'ndmi': {'bands': ['B08', 'B11'],
              'range': [-1, 1]},
@@ -173,6 +176,12 @@ def get_rsi_function(rsi_name, meta=None):
         else:
             f = getattr(sys.modules[__name__], rsi_name)
     return f
+
+
+def kndvi(B08, B04):
+    ndvi = norm_diff(B08, B04)
+    kndvi = np.tanh(ndvi ** 2)
+    return kndvi
 
 
 def atsavi(B08, B04):
