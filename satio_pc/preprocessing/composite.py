@@ -6,6 +6,39 @@ import pandas as pd
 import numpy as np
 import dask.array as da
 import xarray as xr
+from loguru import logger
+
+
+SUPPORTED_MODES = ['median', 'mean', 'sum', 'min', 'max']
+
+
+def nonzero_reducer(arr, mode):
+    """Compute nanmedian on array. If array is not float32/float64,
+    the array is converted to float and 0 values are skipped.
+
+    mode can be 'median', 'mean', 'sum' """
+
+    reducer_func = {'median': da.nanmedian,
+                    'mean': da.nanmean,
+                    'sum': da.nansum,
+                    'min': da.nanmin,
+                    'max': da.nanmax}.get(mode)
+
+    if reducer_func is None:
+        raise ValueError(f"Compositing mode '{mode}' not supported. "
+                         f"Should be one of {SUPPORTED_MODES}.")
+
+    start_dtype = arr.dtype
+    if start_dtype not in (np.float32, np.float64):
+        arr = arr.astype(np.float32)
+        arr = arr.where(arr != 0, np.nan)
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=RuntimeWarning)
+        res = reducer_func(arr.data, axis=0)
+
+    # res comes out as float. nans will be casted to 0s when returning to int
+    return res.astype(start_dtype)
 
 
 def _get_date_range(start, end, freq, window):
@@ -25,6 +58,7 @@ def calculate_moving_composite(darr: xr.DataArray,
                                window=None,
                                start=None,
                                end=None,
+                               mode='median',
                                use_all_obs=True,
                                ):
     """
@@ -59,6 +93,18 @@ def calculate_moving_composite(darr: xr.DataArray,
     ----------
     Tuple of time_vector and composite 4d array
     """
+    if mode not in SUPPORTED_MODES:
+        raise ValueError(('Compositing mode should be one of '
+                          f'{SUPPORTED_MODES}, but got: `{mode}`'))
+
+    no_ov_modes = ['sum', 'min', 'max']
+    if mode in no_ov_modes:
+        if window is not None and window != freq:
+            logger.warning(('`window` argument is ignored for '
+                            f'compositing mode `{no_ov_modes}`.'))
+        # For these modes window overlap is not allowed in the time subsets
+        # to avoid double counting of values
+        window = freq
     window = window or freq  # if window is None, default to `freq` days
 
     if window < freq:
@@ -92,10 +138,7 @@ def calculate_moving_composite(darr: xr.DataArray,
         if not any(flag):
             continue
         idxs = np.where(flag)[0]
-
-        # for band_idx in range(comp.shape[1]):
-        #     comp[i, band_idx, ...] = nonzero_nanmedian(darr.isel(time=idxs))
-        comp[i, ...] = nonzero_nanmedian(darr.isel(time=idxs))
+        comp[i, ...] = nonzero_reducer(darr.isel(time=idxs), mode)
 
     darr_out = xr.DataArray(comp,
                             dims=darr.dims,
@@ -118,7 +161,7 @@ def _get_invervals_flags(date_range,
     for i, d in enumerate(date_range):
 
         if i == len(date_range) - 1 and use_all_obs:
-            tmp_after = None
+            tmp_after = None  # defaults to end of timeseries
         else:
             tmp_after = after
 
@@ -128,29 +171,9 @@ def _get_invervals_flags(date_range,
             before=before,
             after=tmp_after)
 
-        # if (i == len(date_range) - 1) and use_all_obs:
-        #     idxs = _include_last_obs(idxs)
-
         intervals_flags.append(idxs)
 
     return intervals_flags
-
-
-def nonzero_nanmedian(arr):
-    """Compute nanmedian on array. If array is not float32/float64,
-    the array is converted to float and 0 values are skipped"""
-
-    start_dtype = arr.dtype
-    if start_dtype not in (np.float32, np.float64):
-        arr = arr.astype(np.float32)
-        arr = arr.where(arr != 0, np.nan)
-
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", category=RuntimeWarning)
-        res = da.nanmedian(arr.data, axis=0)
-
-    # res comes out as float. nans will be casted to 0s when returning to int
-    return res.astype(start_dtype)
 
 
 def _get_before_after(window: int):

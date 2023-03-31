@@ -40,12 +40,14 @@ class ESAWorldCoverTimeSeries:
                   window=None,
                   start=None,
                   end=None,
-                  use_all_obs=False):
+                  mode='median',
+                  use_all_obs=True):
         return calculate_moving_composite(self._obj,
                                           freq,
                                           window,
                                           start,
                                           end,
+                                          mode,
                                           use_all_obs)
 
     def interpolate(self):
