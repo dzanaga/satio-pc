@@ -143,6 +143,7 @@ def load_l2a(bounds,
     import pystac_client
     import planetary_computer
     import stackstac
+    from satio_pc.extension import ESAWorldCoverTimeSeries  # noqa register extension
 
     catalog = pystac_client.Client.open(
         "https://planetarycomputer.microsoft.com/api/stac/v1",
