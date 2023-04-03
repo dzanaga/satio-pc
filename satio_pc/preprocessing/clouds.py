@@ -64,7 +64,8 @@ def preprocess_scl(scl_data,
                    erode_r=None,
                    dilate_r=None,
                    max_invalid_ratio=None,
-                   max_invalid_snow_cover=0.95):
+                   snow_dilate_r=3,
+                   max_invalid_snow_cover=0.9):
     """
     From a timeseries (t, y, x) dataarray returns a binary mask False for the
     given mask_values and True elsewhere (valid pixels).
@@ -128,6 +129,7 @@ def preprocess_scl(scl_data,
 
     clouds = da.isin(scl_data, clouds_values)
     saturated = scl_data == SCL_LEGEND['saturated_or_defective']
+    dark = scl_data == SCL_LEGEND['dark_area_pixels']
     snow = scl_data == SCL_LEGEND['snow']
     water = scl_data == SCL_LEGEND['water']
     veg = scl_data == SCL_LEGEND['vegetation']
@@ -137,16 +139,39 @@ def preprocess_scl(scl_data,
     obs = ts_obs.sum(axis=0).astype(np.float32)
 
     cover_clouds = (clouds & ts_obs).sum(axis=0) / obs
+    cover_saturated = (saturated & ts_obs).sum(axis=0) / obs
+
+    cover_invalid = cover_clouds + cover_saturated
+    cover_valid = -cover_invalid + 1
+
+    cover_dark = (dark & ts_obs).sum(axis=0) / obs
     cover_snow = (snow & ts_obs).sum(axis=0) / obs
     cover_water = (water & ts_obs).sum(axis=0) / obs
     cover_veg = (veg & ts_obs).sum(axis=0) / obs
     cover_notveg = (notveg & ts_obs).sum(axis=0) / obs
 
-    # we want to avoid masking snow pixels if they are snow >95% of valid obs
-    invalid_snow = (cover_clouds + cover_snow) <= max_invalid_snow_cover  # 2d
-    snow_mask = snow & da.broadcast_to(invalid_snow, snow.shape)
+    # we want to avoid masking snow pixels if they are snow >90% of valid obs
+    # the non permanent snow is dilated to give a snow mask together with clouds
+    valid_snow = (cover_snow / cover_valid) > max_invalid_snow_cover  # 2d
+    invalid_snow = (cover_snow / cover_valid) <= max_invalid_snow_cover  # 2d
 
-    ma_mask = ((clouds | saturated | snow_mask) & ts_obs)
+    valid_snow_mask = snow & da.broadcast_to(valid_snow, snow.shape)
+    invalid_snow_mask = snow & da.broadcast_to(invalid_snow, snow.shape)
+
+    d = footprints.disk(snow_dilate_r)
+    snow_dil = da.stack([binary_dilation(m, d)
+                         for m in invalid_snow_mask.data])
+    invalid_snow_mask = snow_dil & ~valid_snow_mask
+
+    # want to mask dark pixels (potential clouds shadows) if their occurrance is less
+    # than min_valid_dark_cover. e.g. occasional clouds
+    # not_cover_clouds = (-cover_clouds + 1)
+    # clear_dark_cover = da.zeros_like(not_cover_clouds)
+    # clear_dark_cover[not_cover_clouds > 0] = (
+    #     cover_dark[not_cover_clouds > 0] /
+    #     not_cover_clouds[not_cover_clouds > 0])
+
+    ma_mask = ((clouds | saturated | invalid_snow_mask) & ts_obs)
     invalid_before = ma_mask.sum(axis=0) / obs
 
     if (erode_r is not None) | (erode_r > 0):
@@ -157,7 +182,7 @@ def preprocess_scl(scl_data,
         d = footprints.disk(dilate_r)
         clouds = da.stack([binary_dilation(m, d) for m in clouds])
 
-    mask = (clouds | saturated | snow_mask)
+    mask = (clouds | saturated | invalid_snow_mask)
     ma_mask = (mask & ts_obs)
     invalid_after = ma_mask.sum(axis=0) / obs
 
@@ -174,7 +199,7 @@ def preprocess_scl(scl_data,
     mask = mask.expand_dims('band', axis=1)
 
     aux_names = ['obs_l2a', 'scl_invalid_before',
-                 'scl_invalid_after', 'scl_snow_cover',
+                 'scl_invalid_after', 'scl_snow_cover', 'scl_dark_cover',
                  'scl_water_cover', 'scl_veg_cover',
                  'scl_notveg_cover']
 
@@ -182,6 +207,7 @@ def preprocess_scl(scl_data,
                     invalid_before,
                     invalid_after,
                     cover_snow,
+                    cover_dark,
                     cover_water,
                     cover_veg,
                     cover_notveg], axis=0).astype(np.float32)
