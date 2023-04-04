@@ -1,5 +1,6 @@
 import tempfile
 import xml.etree.ElementTree as ET
+import datetime
 
 import requests
 import numpy as np
@@ -89,7 +90,7 @@ def force_unique_time(darr):
     return darr
 
 
-def harmonize(data):
+def harmonize_tmp(data):
     """
     Harmonize new Sentinel-2 data to the old baseline.
 
@@ -126,6 +127,41 @@ def harmonize(data):
     new_harmonized = data.sel(time=~baseline_flag, band=to_process).copy()
 
     new_harmonized = new_harmonized.clip(offset)
+    new_harmonized -= offset
+
+    new = xr.concat([new, new_harmonized], "band").sel(
+        band=data.band.data.tolist())
+    return xr.concat([old, new], dim="time")
+
+
+def harmonize(data):
+    """
+    Harmonize new Sentinel-2 data to the old baseline.
+
+    Parameters
+    ----------
+    data: xarray.DataArray
+        A DataArray with four dimensions: time, band, y, x
+
+    Returns
+    -------
+    harmonized: xarray.DataArray
+        A DataArray with all values harmonized to the old
+        processing baseline.
+    """
+    cutoff = datetime.datetime(2022, 1, 25)
+    offset = 1000
+    bands = ["B01", "B02", "B03", "B04",
+             "B05", "B06", "B07", "B08",
+             "B8A", "B09", "B10", "B11", "B12"]
+
+    old = data.sel(time=slice(cutoff))
+
+    to_process = list(set(bands) & set(data.band.data.tolist()))
+    new = data.sel(time=slice(cutoff, None)).drop_sel(band=to_process)
+
+    new_harmonized = data.sel(time=slice(
+        cutoff, None), band=to_process).clip(offset)
     new_harmonized -= offset
 
     new = xr.concat([new, new_harmonized], "band").sel(
