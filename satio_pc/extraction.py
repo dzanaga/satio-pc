@@ -107,7 +107,7 @@ class S2BlockExtractor:
             for v in self.azure_log.values():
                 self._azure_client.delete_file(v)
 
-        logger.add(self.proc_log)
+        logger.add(self.local_log['proc'])
 
         # get features to tif
         fn = self._extract_s2_wrapper()
@@ -129,7 +129,7 @@ class S2BlockExtractor:
             fn = self._extract_s2()
             return fn
         except Exception as e:
-            s = logger.add(self.err_log)
+            s = logger.add(self.local_log['error'])
             logger.exception(f"Features extraction failed: {e}")
             logger.remove(s)
             return None
