@@ -68,12 +68,13 @@ class AzureBlobReader:
         if blob_client.content_settings.content_type != "text/plain":
             raise ValueError("The blob is not a text file")
         return blob_client.download_blob_to_text()
-
-    # def read_txt(self, blob_name):
-    #     blob_client = self.container_client.get_blob_client(blob_name)
-    #     if blob_client.content_settings.content_type != "text/plain":
-    #         raise ValueError("The blob is not a text file")
-    #     data_stream = io.BytesIO()
-    #     blob_client.download_blob().download_to_stream(data_stream)
-    #     data_stream.seek(0)
-    #     return data_stream.read().decode("utf-8")
+    
+    def download_file(self, key, dst_file_path, overwrite=False):
+        blob_client = self.container_client.get_blob_client(key)
+        if not blob_client.exists():
+            raise ResourceNotFoundError(f"The blob '{key}' does not exist")
+        if not overwrite and Path(dst_file_path).exists():
+            return
+        with open(dst_file_path, "wb") as download_file:
+            blob_data = blob_client.download_blob()
+            blob_data.readinto(download_file)

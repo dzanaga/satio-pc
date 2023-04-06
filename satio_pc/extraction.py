@@ -61,7 +61,7 @@ class S2BlockExtractor:
             for k in ('done', 'error', 'proc')}
 
         self.azure_log = {
-            k: f"logs/done/{self.year}/{self.sensor}/{self.local_log[k].name}"
+            k: f"logs/{k}/{self.year}/{self.sensor}/{self.local_log[k].name}"
             for k in ('done', 'error', 'proc')}
 
     def upload_results(self, fn):
