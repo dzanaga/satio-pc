@@ -39,6 +39,6 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "ewc = ewc.cli:ewc_cli",
+            "ewc = satio_pc.cli:ewc_cli",
         ]}
 )
