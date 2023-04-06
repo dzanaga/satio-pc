@@ -36,5 +36,9 @@ setup(
         'rio-cogeo',
         'shapely',
         'tqdm',
-    ]
+    ],
+    entry_points={
+        "console_scripts": [
+            "ewc = ewc.cli:ewc_cli",
+        ]}
 )
