@@ -58,3 +58,6 @@ class Ewc:
 
 def ewc_cli():
     Ewc()
+
+if __name__ == '__main__':
+    ewc_cli()
