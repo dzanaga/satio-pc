@@ -164,7 +164,7 @@ class S2BlockExtractor:
                            max_cloud_cover=max_cloud_cover)
 
         # preprocess s2
-        tmpdir = tempfile.TemporaryDirectory(prefix='ewc_tmp-', dir='/tmp')
+        tmpdir = tempfile.TemporaryDirectory(prefix='ewc_tmp-', dir=self.block_folder)
 
         # mask preparation
         mask_settings = settings['l2a']['mask']
