@@ -16,20 +16,18 @@ class AzureBlobReader:
     def container_client(self):
         return self.blob_service_client.get_container_client(
             self._container_name)
-
+     
     def list_folders(self, prefix=None):
         folders = set()
         for blob in self.container_client.list_blobs(name_starts_with=prefix):
-            if blob.name[-1] == "/":
-                folder = Path(blob.name).parts[-2]
-                folders.add(folder)
+            folders.add(str(Path(blob.name).parent))
         return sorted(list(folders))
 
     def list_files(self, prefix=None):
         files = set()
         for blob in self.container_client.list_blobs(name_starts_with=prefix):
             if blob.name[-1] != "/":
-                files.add(Path(blob.name).parts[-1])
+                files.add(blob.name)
         return sorted(list(files))
 
     def check_file_exists(self, file_name):
