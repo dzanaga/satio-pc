@@ -112,15 +112,17 @@ class ESAWorldCoverTimeSeries:
         return darr
 
     def save_features(self,
-                      filename: str = None,
+                      filename,
+                      bounds,
+                      epsg,
                       tags: Dict = None,
                       compress_tag: str = 'deflate-uint16',
                       **profile_kwargs):
 
         from satio_pc.geotiff import save_features_geotiff
-        bounds = bounds or self.bounds
+        # bounds = self.bounds
         # to be standardized as self._obj.epsg
-        epsg = epsg or int(self._obj.crs.split(':')[-1])
+        # epsg = int(self._obj.crs.split(':')[-1])
         bands_names = self._obj.band.values.tolist()
 
         _ = save_features_geotiff(self._obj.data,

@@ -215,21 +215,25 @@ class S2BlockExtractor:
         final = final.persist()
         final = final.squeeze()
 
-        epsg = tile_to_epsg(tile)
-        crs = CRS.from_epsg(epsg)
-        final = final.rio.write_crs(crs)
-        final_ds = final.to_dataset('band')
-
         output_folder = Path(self.block_folder)
         fn = output_folder / \
             f'{final.name}_{tile}_{block.block_id:03d}_{year}.tif'
+
         logger.info(f"Saving features stack to {fn}")
-        final_ds.rio.to_raster(fn,
-                               windowed=False,
-                               tiled=True,
-                               compress='deflate',
-                               predictor=3,
-                               zlevel=4)
+        final.ewc.save_features(fn, block.bounds, block.epsg)
+
+        return fn
+
+        # crs = CRS.from_epsg(epsg)
+        # final = final.rio.write_crs(crs)
+        # final_ds = final.to_dataset('band')
+
+        # final_ds.rio.to_raster(fn,
+        #                        windowed=False,
+        #                        tiled=True,
+        #                        compress='deflate',
+        #                        predictor=3,
+        #                        zlevel=4)
 
         return fn
 
