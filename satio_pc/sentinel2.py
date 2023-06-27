@@ -474,6 +474,6 @@ def preprocess_l2a(ds_dict,
     for t in timer10, timer20:
         t.log()
 
-    dsm10 = dsm10.persist_chunk()
+    dsm10 = dsm10.ewc.persist_chunk()
 
     return dsm10
