@@ -105,6 +105,11 @@ class ESAWorldCoverTimeSeries:
         atexit.register(tmpfile.close)
         return darr
 
+    def persist_chunk(self, chunks=(-1, -1, 256, 256)):
+        chunks = self._obj.chunks if chunks is None else chunks
+        darr = self._obj.persist().chunk(chunks)
+        return darr
+
     def rgb(self, bands=None, vmin=0, vmax=1000, **kwargs):
         import hvplot.xarray  # noqa
         import hvplot.pandas  # noqa
