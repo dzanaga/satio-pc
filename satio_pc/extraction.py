@@ -33,11 +33,12 @@ class S2BlockExtractor:
                  year,
                  bands=None,
                  indices=None,
+                 percentiles=[10, 25, 50, 75, 90],
                  output_folder='.',
                  connection_str=None,
                  container_name=None,
                  cleanup=True,
-                 terminate_if_failed=False) -> None:
+                 terminate_if_failed=False,) -> None:
 
         self.tile = tile
         self.block_id = block_id
@@ -68,6 +69,7 @@ class S2BlockExtractor:
 
         self._bands = bands
         self._indices = indices
+        self._percentiles = percentiles
 
     def upload_results(self, fn):
 
@@ -194,7 +196,7 @@ class S2BlockExtractor:
         s2_vi = s2.ewc.indices(s2_indices)
 
         # percentiles sensors and vis
-        q = [10, 25, 50, 75, 90]
+        q = self._percentiles
         ps = [s.ewc.percentile(q, name_prefix='s2') for s in (s2, s2_vi)]
 
         # fix time to same timestamp (only 1) to avoid concat issues
