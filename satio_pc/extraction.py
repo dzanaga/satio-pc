@@ -131,10 +131,16 @@ class S2BlockExtractor:
 
         return None
 
+    def _save_features(self, data, fn, bounds, epsg):
+        logger.info(f"Saving features stack to {fn}")
+        data.ewc.save_features(fn, bounds, epsg)
+
     def _extract_s2_wrapper(self):
         try:
-            fn = self._extract_s2()
+            data, fn, bounds, epsg = self._extract_s2()
+            self._save_features(data, fn, bounds, epsg)
             return fn
+
         except Exception as e:
             s = logger.add(self.local_log['error'])
             logger.exception(f"Features extraction failed: {e}")
@@ -219,10 +225,7 @@ class S2BlockExtractor:
         fn = output_folder / \
             f'{final.name}_{tile}_{block.block_id:03d}_{year}.tif'
 
-        logger.info(f"Saving features stack to {fn}")
-        final.ewc.save_features(fn, block.bounds, block.epsg)
-
-        return fn
+        return final, fn, block.bounds, block.epsg
 
         # crs = CRS.from_epsg(epsg)
         # final = final.rio.write_crs(crs)
