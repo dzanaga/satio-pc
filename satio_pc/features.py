@@ -18,7 +18,7 @@ def percentile(ts, q=[10, 25, 50, 75, 90], name_prefix='s2'):
 
     p = da.concatenate([p[:, b, :, :] for b in range(ts.band.size)],
                        axis=0)
-    p_names = [f'{name_prefix}-{b}-p{qi}' for b in ts.band for qi in q]
+    p_names = [f'{name_prefix}-{b.item()}-p{qi}' for b in ts.band for qi in q]
 
     p = da.expand_dims(p, axis=0)
     p = xr.DataArray(p,
