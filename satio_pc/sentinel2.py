@@ -271,7 +271,8 @@ def preprocess_l2a(ds_dict,
                    composite_window=20,
                    composite_mode='median',
                    reflectance=True,
-                   tmpdir='.'):
+                   tmpdir='.',
+                   cache=False):
 
     ds10_block = ds_dict[10]
     ds20_block = ds_dict[20]
