@@ -31,6 +31,8 @@ class S2BlockExtractor:
                  tile,
                  block_id,
                  year,
+                 bands=None,
+                 indices=None,
                  output_folder='.',
                  connection_str=None,
                  container_name=None,
@@ -63,7 +65,10 @@ class S2BlockExtractor:
         self.azure_log = {
             k: f"logs/{k}/{self.year}/{self.sensor}/{self.local_log[k].name}"
             for k in ('done', 'error', 'proc')}
-
+        
+        self._bands = bands
+        self._indices = indices
+        
     def upload_results(self, fn):
 
         if self._azure_client is None:
@@ -134,6 +139,100 @@ class S2BlockExtractor:
             logger.remove(s)
             return None
 
+    def _extract_s2(self):
+        import xarray as xr
+        import dask.array as da
+        from pyproj.crs import CRS
+        from loguru import logger
+        import tempfile
+        from satio_pc.sentinel2 import load_l2a, preprocess_l2a
+        from satio_pc.preprocessing.clouds import preprocess_scl
+        from satio_pc.grid import get_blocks_gdf, tile_to_epsg
+
+        year = self.year
+        tile = self.tile
+        block_id = self.block_id
+
+        start_date = f'{year}-01-01'
+        end_date = f'{year + 1}-01-01'
+        max_cloud_cover = settings['l2a']['max_cloud_cover']
+
+        blocks = get_blocks_gdf([tile])
+        block = blocks[blocks.block_id == block_id].iloc[0]
+
+        s2_dict = load_l2a(block.bounds,
+                           block.epsg,
+                           block.tile,
+                           start_date,
+                           end_date,
+                           max_cloud_cover=max_cloud_cover)
+
+        # preprocess s2
+        tmpdir = tempfile.TemporaryDirectory(prefix='ewc_tmp-', dir=self.block_folder)
+
+        # mask preparation
+        mask_settings = settings['l2a']['mask']
+        scl = preprocess_scl(s2_dict['scl'],
+                             **mask_settings)
+
+        scl20_mask = scl.mask
+        scl20_aux = scl.aux
+
+        s2 = preprocess_l2a(s2_dict,
+                            scl20_mask,
+                            start_date,
+                            end_date,
+                            composite_freq=settings['l2a']['composite']['freq'],
+                            composite_window=settings['l2a']['composite'][
+                                'window'],
+                            tmpdir=tmpdir.name)
+
+        s2_indices = self._indices
+
+        # compute indices
+        s2_vi = s2.ewc.indices(s2_indices)
+
+        # percentiles sensors and vis
+        q = [10, 25, 50, 75, 90]
+        ps = [s.ewc.percentile(q, name_prefix='s2') for s in (s2, s2_vi)]
+
+        # fix time to same timestamp (only 1) to avoid concat issues
+        # (different compositing settings for s2 and s1)
+        for p in ps:
+            p['time'] = ps[0].time
+
+        # scl aux 10m
+        scl10_aux = scl20_aux.ewc.rescale(scale=2, order=1)
+        scl10_aux['time'] = ps[0].time
+
+        final = xr.concat(ps + [scl10_aux], dim='band')
+        final.name = 'satio-features-s2'
+
+        logger.info("Computing features stack")
+        final = final.persist()
+        final = final.squeeze()
+
+        epsg = tile_to_epsg(tile)
+        crs = CRS.from_epsg(epsg)
+        final = final.rio.write_crs(crs)
+        final_ds = final.to_dataset('band')
+
+        output_folder = Path(self.block_folder)
+        fn = output_folder / \
+            f'{final.name}_{tile}_{block.block_id:03d}_{year}.tif'
+        logger.info(f"Saving features stack to {fn}")
+        final_ds.rio.to_raster(fn,
+                               windowed=False,
+                               tiled=True,
+                               compress='deflate',
+                               predictor=3,
+                               zlevel=4)
+
+        return fn
+
+    
+class S2BlockExtractorHabitat(S2BlockExtractor):
+    
     def _extract_s2(self):
         import xarray as xr
         import dask.array as da

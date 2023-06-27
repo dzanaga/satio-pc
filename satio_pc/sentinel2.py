@@ -204,6 +204,7 @@ def load_l2a(bounds,
              tile,
              start_date,
              end_date,
+             bands=None,
              max_cloud_cover=90,
              filter_corrupted=True):
     import stackstac
@@ -217,12 +218,16 @@ def load_l2a(bounds,
     assets_10m = ['B02', 'B03', 'B04', 'B08']
     assets_20m = ['B05', 'B06', 'B07', 'B8A', 'B11', 'B12']
     assets_60m = ['B01', 'B09']
+    
+    if bands is None:
+        bands = assets_10m + assets_20m + assets_60m
+        
     scl = 'SCL'
 
     ds = {}
-    assets = {10: assets_10m,
-              20: assets_20m,
-              60: assets_60m,
+    assets = {10: [b for b in bands if b in assets_10m],
+              20: [b for b in bands if b in assets_20m],
+              60: [b for b in bands if b in assets_60m],
               'scl': [scl]}
 
     chunksize = {10: 1024,
@@ -237,6 +242,8 @@ def load_l2a(bounds,
 
     keep_vars = ['time', 'band', 'y', 'x', 'id', 's2:processing_baseline']
     for res in assets.keys():
+        if len(assets[res]) == 0:
+            continue
         ds[res] = stackstac.stack(items,
                                   assets=assets[res],
                                   epsg=f'EPSG:{epsg}',
@@ -257,6 +264,8 @@ def load_l2a(bounds,
             ds[res][v] = ds[res][v].astype(str)
 
         if res in (10, 20, 60):
+            if len(assets[res]) == 0:
+                continue
             # harmonize values for processing baseline 4.0 (25th Jan 2022)
             ds[res] = ds[res].ewc.harmonize()
 
