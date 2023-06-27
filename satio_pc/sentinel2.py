@@ -218,10 +218,10 @@ def load_l2a(bounds,
     assets_10m = ['B02', 'B03', 'B04', 'B08']
     assets_20m = ['B05', 'B06', 'B07', 'B8A', 'B11', 'B12']
     assets_60m = ['B01', 'B09']
-    
+
     if bands is None:
         bands = assets_10m + assets_20m + assets_60m
-        
+
     scl = 'SCL'
 
     ds = {}
@@ -272,16 +272,15 @@ def load_l2a(bounds,
     return ds
 
 
-def preprocess_l2a(ds_dict,
-                   clouds_mask,
-                   start_date,
-                   end_date,
-                   composite_freq=10,
-                   composite_window=20,
-                   composite_mode='median',
-                   reflectance=True,
-                   tmpdir='.',
-                   cache=False):
+def preprocess_l2a_cache(ds_dict,
+                         clouds_mask,
+                         start_date,
+                         end_date,
+                         composite_freq=10,
+                         composite_window=20,
+                         composite_mode='median',
+                         reflectance=True,
+                         tmpdir='.'):
 
     ds10_block = ds_dict[10]
     ds20_block = ds_dict[20]
@@ -374,5 +373,107 @@ def preprocess_l2a(ds_dict,
             t.log()
 
     dsm10 = dsm10.ewc.cache(tmpdir)
+
+    return dsm10
+
+
+def preprocess_l2a(ds_dict,
+                   clouds_mask,
+                   start_date,
+                   end_date,
+                   composite_freq=10,
+                   composite_window=20,
+                   composite_mode='median',
+                   reflectance=True,
+                   tmpdir='.'):
+
+    ds10_block = ds_dict[10]
+    ds20_block = ds_dict[20]
+    scl20_block = clouds_mask
+
+    timer10 = FeaturesTimer(10, 'l2a')
+    timer20 = FeaturesTimer(20, 'l2a')
+
+    # download
+    logger.info("Loading block data")
+    timer10.load.start()
+    ds10_block = ds10_block.persist()
+    timer10.load.stop()
+
+    timer20.load.start()
+    ds20_block = ds20_block.persist()
+    scl20_block = scl20_block.persist()
+    scl10_block = scl20_block.ewc.rescale(scale=2,
+                                          order=0)
+    scl10_block = scl10_block.persist()
+    timer20.load.stop()
+
+    # 10m
+    # mask clouds
+    timer10.composite.start()
+    ds10_block_masked = ds10_block.ewc.mask(
+        scl10_block).persist()
+
+    logger.info("Compositing 10m block data")
+    # composite
+    ds10_block_comp = ds10_block_masked.ewc.composite(
+        freq=composite_freq,
+        window=composite_window,
+        start=start_date,
+        end=end_date).persist()
+    timer10.composite.stop()
+
+    logger.info("Interpolating 10m block data")
+    # interpolation
+    timer10.interpolate.start()
+    ds10_block_interp = ds10_block_comp.ewc.interpolate(
+    ).persist()
+    timer10.interpolate.stop()
+
+    # 20m
+    # mask
+    timer20.composite.start()
+    ds20_block_masked = ds20_block.ewc.mask(
+        scl20_block).persist()
+
+    logger.info("Compositing 20m block data")
+    # composite
+    ds20_block_comp = ds20_block_masked.ewc.composite(
+        freq=composite_freq,
+        window=composite_window,
+        start=start_date,
+        end=end_date).persist()
+    timer20.composite.stop()
+
+    logger.info("Interpolating 20m block data")
+    # interpolation
+    timer20.interpolate.start()
+    ds20_block_interp = ds20_block_comp.ewc.interpolate(
+    ).persist()
+    timer20.interpolate.stop()
+
+    logger.info("Merging 10m and 20m series")
+    # merging to 10m cleaned data
+    ds20_block_interp_10m = ds20_block_interp.ewc.rescale(scale=2,
+                                                          order=1,
+                                                          nodata_value=0)
+    dsm10 = xr.concat([ds10_block_interp,
+                       ds20_block_interp_10m],
+                      dim='band')
+
+    if reflectance:
+        dsm10 = dsm10.astype(np.float32) / 10000
+
+    dsm10.attrs = ds10_block.attrs
+
+    for t in timer10, timer20:
+        t.load.log()
+        t.composite.log()
+        t.interpolate.log()
+
+    for t in timer10, timer20:
+        t.log()
+
+    dsm10 = dsm10.persist()
 
     return dsm10

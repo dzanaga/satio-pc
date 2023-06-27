@@ -65,10 +65,10 @@ class S2BlockExtractor:
         self.azure_log = {
             k: f"logs/{k}/{self.year}/{self.sensor}/{self.local_log[k].name}"
             for k in ('done', 'error', 'proc')}
-        
+
         self._bands = bands
         self._indices = indices
-        
+
     def upload_results(self, fn):
 
         if self._azure_client is None:
@@ -168,7 +168,8 @@ class S2BlockExtractor:
                            max_cloud_cover=max_cloud_cover)
 
         # preprocess s2
-        tmpdir = tempfile.TemporaryDirectory(prefix='ewc_tmp-', dir=self.block_folder)
+        tmpdir = tempfile.TemporaryDirectory(prefix='ewc_tmp-',
+                                             dir=self.block_folder)
 
         # mask preparation
         mask_settings = settings['l2a']['mask']
@@ -230,9 +231,9 @@ class S2BlockExtractor:
 
         return fn
 
-    
+
 class S2BlockExtractorHabitat(S2BlockExtractor):
-    
+
     def _extract_s2(self):
         import xarray as xr
         import dask.array as da
@@ -263,7 +264,8 @@ class S2BlockExtractorHabitat(S2BlockExtractor):
                            max_cloud_cover=max_cloud_cover)
 
         # preprocess s2
-        tmpdir = tempfile.TemporaryDirectory(prefix='ewc_tmp-', dir=self.block_folder)
+        tmpdir = tempfile.TemporaryDirectory(
+            prefix='ewc_tmp-', dir=self.block_folder)
 
         # mask preparation
         mask_settings = settings['l2a']['mask']
