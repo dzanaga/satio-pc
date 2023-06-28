@@ -31,6 +31,7 @@ class S2BlockExtractor:
                  tile,
                  block_id,
                  year,
+                 settings,
                  bands=None,
                  indices=None,
                  percentiles=[10, 25, 50, 75, 90],
@@ -70,6 +71,7 @@ class S2BlockExtractor:
         self._bands = bands
         self._indices = indices
         self._percentiles = percentiles
+        self._settings = settings
 
     def upload_results(self, fn):
 
@@ -163,7 +165,7 @@ class S2BlockExtractor:
 
         start_date = f'{year}-01-01'
         end_date = f'{year + 1}-01-01'
-        max_cloud_cover = settings['l2a']['max_cloud_cover']
+        max_cloud_cover = self._settings['l2a']['max_cloud_cover']
 
         blocks = get_blocks_gdf([tile])
         block = blocks[blocks.block_id == block_id].iloc[0]
@@ -173,14 +175,11 @@ class S2BlockExtractor:
                            block.tile,
                            start_date,
                            end_date,
+                           bands=self._bands,
                            max_cloud_cover=max_cloud_cover)
 
-        # preprocess s2
-        tmpdir = tempfile.TemporaryDirectory(prefix='ewc_tmp-',
-                                             dir=self.block_folder)
-
         # mask preparation
-        mask_settings = settings['l2a']['mask']
+        mask_settings = self._settings['l2a']['mask']
         scl = preprocess_scl(s2_dict['scl'],
                              **mask_settings)
 
@@ -191,10 +190,12 @@ class S2BlockExtractor:
                             scl20_mask,
                             start_date,
                             end_date,
-                            composite_freq=settings['l2a']['composite']['freq'],
-                            composite_window=settings['l2a']['composite'][
-                                'window'],
-                            tmpdir=tmpdir.name)
+                            composite_freq=self._settings[
+                                'l2a']['composite']['freq'],
+                            composite_window=self._settings[
+                                'l2a']['composite']['window'],
+                            composite_mode=self._settings[
+                                'l2a']['composite']['mode'])
 
         s2_indices = self._indices
 
@@ -238,7 +239,7 @@ class S2BlockExtractor:
         #                        predictor=3,
         #                        zlevel=4)
 
-        return fn
+        # return fn
 
 
 class S2BlockExtractorHabitat(S2BlockExtractor):
@@ -260,7 +261,7 @@ class S2BlockExtractorHabitat(S2BlockExtractor):
 
         start_date = f'{year}-01-01'
         end_date = f'{year + 1}-01-01'
-        max_cloud_cover = settings['l2a']['max_cloud_cover']
+        max_cloud_cover = self._settings['l2a']['max_cloud_cover']
 
         blocks = get_blocks_gdf([tile])
         block = blocks[blocks.block_id == block_id].iloc[0]
@@ -277,7 +278,7 @@ class S2BlockExtractorHabitat(S2BlockExtractor):
             prefix='ewc_tmp-', dir=self.block_folder)
 
         # mask preparation
-        mask_settings = settings['l2a']['mask']
+        mask_settings = self._settings['l2a']['mask']
         scl = preprocess_scl(s2_dict['scl'],
                              **mask_settings)
 
@@ -288,8 +289,8 @@ class S2BlockExtractorHabitat(S2BlockExtractor):
                             scl20_mask,
                             start_date,
                             end_date,
-                            composite_freq=settings['l2a']['composite']['freq'],
-                            composite_window=settings['l2a']['composite'][
+                            composite_freq=self._settings['l2a']['composite']['freq'],
+                            composite_window=self._settings['l2a']['composite'][
                                 'window'],
                             tmpdir=tmpdir.name)
 

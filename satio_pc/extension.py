@@ -145,13 +145,13 @@ class ESAWorldCoverTimeSeries:
         return im.interactive.sel(
             time=pnw.DiscreteSlider).hvplot.rgb(
                 x='x', y='y',
-            bands='band',
-            data_aspect=1,
-            xaxis=None,
-            yaxis=None,
-            **kwargs)
+                bands='band',
+                data_aspect=1,
+                xaxis=None,
+                yaxis=None,
+                **kwargs)
 
-    def plot(self, band=None, vmin=None, vmax=None,
+    def show(self, band=None, vmin=None, vmax=None,
              colormap='plasma', **kwargs):
         import hvplot.xarray  # noqa
         import hvplot.pandas  # noqa
@@ -161,8 +161,10 @@ class ESAWorldCoverTimeSeries:
         im = self._obj
         band = im.band[0] if band is None else band
         im = im.sel(band=band)
-        return im.interactive.sel(time=pnw.DiscreteSlider).plot(
-            vmin=vmin,
-            vmax=vmax,
+        return im.interactive.sel(time=pnw.DiscreteSlider).hvplot(
+            clim=(vmin, vmax),
             colormap=colormap,
+            aspect=1,
+            x='x',
+            y='y',
             **kwargs)
