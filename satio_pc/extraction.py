@@ -151,13 +151,11 @@ class S2BlockExtractor:
 
     def _extract_s2(self):
         import xarray as xr
-        import dask.array as da
-        from pyproj.crs import CRS
         from loguru import logger
-        import tempfile
+
         from satio_pc.sentinel2 import load_l2a, preprocess_l2a
         from satio_pc.preprocessing.clouds import preprocess_scl
-        from satio_pc.grid import get_blocks_gdf, tile_to_epsg
+        from satio_pc.grid import get_blocks_gdf
 
         year = self.year
         tile = self.tile
