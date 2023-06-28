@@ -13,7 +13,11 @@ DEFAULT_SETTINGS = {
                       "mode": "median"},
         "mask": {"erode_r": 3,
                  "dilate_r": 13,
-                 "max_invalid_ratio": 1}},
+                 "max_invalid_ratio": 1},
+        "bands": ['B02', 'B03', 'B04', 'B08', 'B11', 'B12'],
+        "indices": ["ndvi"],
+        "percentiles": [10, 25, 50, 75, 90],
+    },
 
     "gamma0": {
         "composite": {"freq": 10,
@@ -36,9 +40,6 @@ class S2BlockExtractor:
                  block_id,
                  year,
                  settings=None,
-                 bands=None,
-                 indices=None,
-                 percentiles=[10, 25, 50, 75, 90],
                  output_folder='.',
                  connection_str=None,
                  container_name=None,
@@ -72,10 +73,10 @@ class S2BlockExtractor:
             k: f"logs/{k}/{self.year}/{self.sensor}/{self.local_log[k].name}"
             for k in ('done', 'error', 'proc')}
 
-        self._bands = bands
-        self._indices = indices
-        self._percentiles = percentiles
         self._settings = settings or DEFAULT_SETTINGS
+        self._bands = self._settings['l2a']['bands']
+        self._indices = self._settings['l2a']['indices']
+        self._percentiles = self._settings['l2a']['percentiles']
 
     def upload_results(self, fn):
 
