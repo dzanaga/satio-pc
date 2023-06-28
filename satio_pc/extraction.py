@@ -75,7 +75,7 @@ class S2BlockExtractor:
         self._bands = bands
         self._indices = indices
         self._percentiles = percentiles
-        self._settings = settings is settings else DEFAULT_SETTINGS
+        self._settings = settings or DEFAULT_SETTINGS
 
     def upload_results(self, fn):
 
