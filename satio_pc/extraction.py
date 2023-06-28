@@ -4,17 +4,21 @@ from loguru import logger
 from satio_pc.utils.azure import AzureBlobReader
 
 
-settings = {
+DEFAULT_SETTINGS = {
 
     "l2a": {
         "max_cloud_cover": 90,
-        "composite": {"freq": 10, "window": 20},
+        "composite": {"freq": 10,
+                      "window": 20,
+                      "mode": "median"},
         "mask": {"erode_r": 3,
                  "dilate_r": 13,
                  "max_invalid_ratio": 1}},
 
     "gamma0": {
-        "composite": {"freq": 10, "window": 10}},
+        "composite": {"freq": 10,
+                      "window": 10,
+                      "mode": "median"}},
 }
 
 # parser = argparse.ArgumentParser()
@@ -31,7 +35,7 @@ class S2BlockExtractor:
                  tile,
                  block_id,
                  year,
-                 settings,
+                 settings=None,
                  bands=None,
                  indices=None,
                  percentiles=[10, 25, 50, 75, 90],
@@ -71,7 +75,7 @@ class S2BlockExtractor:
         self._bands = bands
         self._indices = indices
         self._percentiles = percentiles
-        self._settings = settings
+        self._settings = settings is settings else DEFAULT_SETTINGS
 
     def upload_results(self, fn):
 
