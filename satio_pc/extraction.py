@@ -355,7 +355,7 @@ class S2Extractor:
 
         self.sensor = 's2'
 
-        self._settings = settings['l2a'] or DEFAULT_SETTINGS['l2a']
+        self._settings = settings or DEFAULT_SETTINGS['l2a']
         self._bands = self._settings['bands']
         self._indices = self._settings['indices']
         self._percentiles = self._settings['percentiles']
