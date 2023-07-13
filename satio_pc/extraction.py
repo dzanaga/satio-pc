@@ -1,6 +1,8 @@
 import shutil
 from pathlib import Path
 from loguru import logger
+
+from satio_pc.utils import random_string
 from satio_pc.utils.azure import AzureBlobReader
 
 
@@ -49,6 +51,7 @@ class S2BlockExtractor:
         self.tile = tile
         self.block_id = block_id
         self.year = year
+
         self.output_folder = Path(output_folder)
 
         self.sensor = 's2'
@@ -231,19 +234,6 @@ class S2BlockExtractor:
 
         return final, fn, block.bounds, block.epsg
 
-        # crs = CRS.from_epsg(epsg)
-        # final = final.rio.write_crs(crs)
-        # final_ds = final.to_dataset('band')
-
-        # final_ds.rio.to_raster(fn,
-        #                        windowed=False,
-        #                        tiled=True,
-        #                        compress='deflate',
-        #                        predictor=3,
-        #                        zlevel=4)
-
-        # return fn
-
 
 class S2BlockExtractorHabitat(S2BlockExtractor):
 
@@ -356,3 +346,99 @@ class S2BlockExtractorHabitat(S2BlockExtractor):
                                zlevel=4)
 
         return fn
+
+
+class S2Extractor:
+
+    def __init__(self,
+                 settings=None,
+                 output_folder='.',
+                 connection_str=None,
+                 container_name=None,
+                 cleanup=True,
+                 terminate_if_failed=False,) -> None:
+
+        self.output_folder = Path(output_folder)
+
+        self.sensor = 's2'
+        self._cleanup = cleanup
+        self._terminate_if_failed = terminate_if_failed
+
+        self._tmp_folder = Path(output_folder) / f'.ewc_{random_string()}'
+        self._tmp_folder.mkdir(exist_ok=True, parents=True)
+
+        if (connection_str is not None) and (container_name is not None):
+            self._azure_client = AzureBlobReader(
+                connection_str, container_name)
+        else:
+            self._azure_client = None
+
+        self._settings = settings or DEFAULT_SETTINGS
+        self._bands = self._settings['l2a']['bands']
+        self._indices = self._settings['l2a']['indices']
+        self._percentiles = self._settings['l2a']['percentiles']
+
+    def extract(self, year, tile, bounds, epsg):
+        import xarray as xr
+        from loguru import logger
+
+        from satio_pc.sentinel2 import load_l2a, preprocess_l2a
+        from satio_pc.preprocessing.clouds import preprocess_scl
+
+        start_date = f'{year}-01-01'
+        end_date = f'{year + 1}-01-01'
+        max_cloud_cover = self._settings['l2a']['max_cloud_cover']
+
+        s2_dict = load_l2a(bounds,
+                           epsg,
+                           tile,
+                           start_date,
+                           end_date,
+                           bands=self._bands,
+                           max_cloud_cover=max_cloud_cover)
+
+        # mask preparation
+        mask_settings = self._settings['l2a']['mask']
+        scl = preprocess_scl(s2_dict['scl'],
+                             **mask_settings)
+
+        scl20_mask = scl.mask
+        scl20_aux = scl.aux
+
+        s2 = preprocess_l2a(s2_dict,
+                            scl20_mask,
+                            start_date,
+                            end_date,
+                            composite_freq=self._settings[
+                                'l2a']['composite']['freq'],
+                            composite_window=self._settings[
+                                'l2a']['composite']['window'],
+                            composite_mode=self._settings[
+                                'l2a']['composite']['mode'])
+
+        s2_indices = self._indices
+
+        # compute indices
+        s2_vi = s2.ewc.indices(s2_indices)
+
+        # percentiles sensors and vis
+        q = self._percentiles
+        ps = [s.ewc.percentile(q, name_prefix='s2') for s in (s2, s2_vi)]
+
+        # fix time to same timestamp (only 1) to avoid concat issues
+        # (different compositing settings for s2 and s1)
+        for p in ps:
+            p['time'] = ps[0].time
+
+        # scl aux 10m
+        scl10_aux = scl20_aux.ewc.rescale(scale=2, order=1)
+        scl10_aux['time'] = ps[0].time
+
+        final = xr.concat(ps + [scl10_aux], dim='band')
+        final.name = 'satio-features-s2'
+
+        logger.info("Computing features stack")
+        final = final.persist()
+        final = final.squeeze()
+
+        return final
