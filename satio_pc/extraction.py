@@ -351,32 +351,14 @@ class S2BlockExtractorHabitat(S2BlockExtractor):
 class S2Extractor:
 
     def __init__(self,
-                 settings=None,
-                 output_folder='.',
-                 connection_str=None,
-                 container_name=None,
-                 cleanup=True,
-                 terminate_if_failed=False,) -> None:
-
-        self.output_folder = Path(output_folder)
+                 settings=None) -> None:
 
         self.sensor = 's2'
-        self._cleanup = cleanup
-        self._terminate_if_failed = terminate_if_failed
 
-        self._tmp_folder = Path(output_folder) / f'.ewc_{random_string()}'
-        self._tmp_folder.mkdir(exist_ok=True, parents=True)
-
-        if (connection_str is not None) and (container_name is not None):
-            self._azure_client = AzureBlobReader(
-                connection_str, container_name)
-        else:
-            self._azure_client = None
-
-        self._settings = settings or DEFAULT_SETTINGS
-        self._bands = self._settings['l2a']['bands']
-        self._indices = self._settings['l2a']['indices']
-        self._percentiles = self._settings['l2a']['percentiles']
+        self._settings = settings['l2a'] or DEFAULT_SETTINGS['l2a']
+        self._bands = self._settings['bands']
+        self._indices = self._settings['indices']
+        self._percentiles = self._settings['percentiles']
 
     def extract(self, year, tile, bounds, epsg):
         import xarray as xr
