@@ -369,7 +369,7 @@ class S2Extractor:
 
         start_date = f'{year}-01-01'
         end_date = f'{year + 1}-01-01'
-        max_cloud_cover = self._settings['l2a']['max_cloud_cover']
+        max_cloud_cover = self._settings['max_cloud_cover']
 
         s2_dict = load_l2a(bounds,
                            epsg,
@@ -380,7 +380,7 @@ class S2Extractor:
                            max_cloud_cover=max_cloud_cover)
 
         # mask preparation
-        mask_settings = self._settings['l2a']['mask']
+        mask_settings = self._settings['mask']
         scl = preprocess_scl(s2_dict['scl'],
                              **mask_settings)
 
@@ -392,11 +392,11 @@ class S2Extractor:
                             start_date,
                             end_date,
                             composite_freq=self._settings[
-                                'l2a']['composite']['freq'],
+                                'composite']['freq'],
                             composite_window=self._settings[
-                                'l2a']['composite']['window'],
+                                'composite']['window'],
                             composite_mode=self._settings[
-                                'l2a']['composite']['mode'])
+                                'composite']['mode'])
 
         s2_indices = self._indices
 
