@@ -191,7 +191,7 @@ def query_l2a_items(tile,
     search = catalog.search(collections=["sentinel-2-l2a"],
                             datetime=time_range,
                             query=query_params)
-    items = search.get_all_items()
+    items = search.item_collection()
 
     if filter_corrupted:
         items = filter_corrupted_items(items)
