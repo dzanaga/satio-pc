@@ -68,7 +68,6 @@ def load_reader_table_items_thread_pool(reader_table,
         reader, asset_window = entry
 
         data = reader.read(current_window)
-        print(data.sum())
         output[index] = data
 
     _ = parallelize(
