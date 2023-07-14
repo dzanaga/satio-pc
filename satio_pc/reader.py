@@ -156,7 +156,7 @@ class S2TileReader:
         self._end_date = end_date
 
         self._max_cloud_cover = max_cloud_cover
-        self._filter_corrupted = True
+        self._filter_corrupted = filter_corrupted
 
         self._items = None
 
