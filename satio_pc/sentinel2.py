@@ -64,9 +64,13 @@ def filter_corrupted_items(items, workers=10, verbose=True):
 
 def mask_clouds(darr, scl_mask):
     """darr has dims (time, band, y, x),
-    mask has dims (time, y, x)"""
-    mask = da.broadcast_to(scl_mask.data, darr.shape)
-    darr_masked = da.where(~mask, 0, darr)
+    mask has dims (time, band, y, x)"""
+    if isinstance(darr.data, da.core.Array):
+        mask = da.broadcast_to(scl_mask.data, darr.shape)
+        darr_masked = da.where(~mask, 0, darr)
+    else:
+        mask = np.broadcast_to(scl_mask.data, darr.shape)
+        darr_masked = darr.where(mask, 0)
     return darr.copy(data=darr_masked)
 
 
