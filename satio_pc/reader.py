@@ -167,6 +167,10 @@ class S2TileReader:
                                           self._end_date,
                                           self._max_cloud_cover,
                                           self._filter_corrupted)
+
+            self._items.items = sorted(self._items.items,
+                                       key=lambda item: item.datetime)
+
         return self._items
 
     def assets(self, bands):
