@@ -18,11 +18,16 @@ def nonzero_reducer(arr, mode):
 
     mode can be 'median', 'mean', 'sum' """
 
-    reducer_func = {'median': da.nanmedian,
-                    'mean': da.nanmean,
-                    'sum': da.nansum,
-                    'min': da.nanmin,
-                    'max': da.nanmax}.get(mode)
+    if isinstance(arr, da.core.Array):
+        reducer_lib = da
+    else:
+        reducer_lib = np
+
+    reducer_func = {'median': reducer_lib.nanmedian,
+                    'mean': reducer_lib.nanmean,
+                    'sum': reducer_lib.nansum,
+                    'min': reducer_lib.nanmin,
+                    'max': reducer_lib.nanmax}.get(mode)
 
     if reducer_func is None:
         raise ValueError(f"Compositing mode '{mode}' not supported. "
@@ -121,9 +126,13 @@ def calculate_moving_composite(darr: xr.DataArray,
     comp_shape = (len(date_range), darr.shape[1],
                   darr.shape[2], darr.shape[3])
 
-    comp = da.zeros(comp_shape,
-                    chunks=(1, 1, darr.shape[2], darr.shape[3]),
-                    dtype=darr.dtype)
+    if isinstance(darr.data, da.core.Array):
+        comp = da.zeros(comp_shape,
+                        chunks=(1, 1, darr.shape[2], darr.shape[3]),
+                        dtype=darr.dtype)
+    else:
+        comp = np.zeros(comp_shape,
+                        dtype=darr.dtype)
 
     time = darr.time.values
     before, after = _get_before_after(window)
