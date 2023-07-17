@@ -128,7 +128,12 @@ class ESAWorldCoverTimeSeries:
         # epsg = int(self._obj.crs.split(':')[-1])
         bands_names = self._obj.band.values.tolist()
 
-        _ = save_features_geotiff(self._obj.compute().data,
+        if isinstance(self._obj.data, da.core.Array):
+            data = self._obj.compute().data
+        else:
+            data = self._obj.data
+
+        _ = save_features_geotiff(data,
                                   bounds=bounds,
                                   epsg=epsg,
                                   bands_names=bands_names,
