@@ -12,7 +12,6 @@ from dataclasses import dataclass
 
 import numpy as np
 import xarray as xr
-from dask_image.ndmorph import binary_erosion, binary_dilation
 from skimage.morphology import footprints
 
 SCL_LEGEND = {
@@ -125,8 +124,10 @@ def preprocess_scl(scl_data,
 
     if isinstance(scl_data, dask.array.core.Array):
         da = dask.array
+        from dask_image.ndmorph import binary_erosion, binary_dilation
     else:
         da = np
+        from skimage.morphology import binary_erosion, binary_dilation
 
     clouds_values = [3, 8, 9, 10]
 
