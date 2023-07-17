@@ -187,6 +187,7 @@ class S2TileReader:
             resolution = 60
         elif bands == ['SCL']:
             dtype = np.uint8
+            resolution = 20
         else:
             raise ValueError(
                 f"Bands is a mix of resolutions or not recognized: {bands}")
