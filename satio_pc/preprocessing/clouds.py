@@ -10,10 +10,8 @@ correctly.
 """
 from dataclasses import dataclass
 
-import dask
-import dask.array as da
-import xarray as xr
 import numpy as np
+import xarray as xr
 from dask_image.ndmorph import binary_erosion, binary_dilation
 from skimage.morphology import footprints
 
@@ -123,6 +121,13 @@ def preprocess_scl(scl_data,
         scl_veg_cover : ratio of veg obs
         scl_notveg_cover : ratio of notveg obs
     """
+    import dask.array
+
+    if isinstance(scl_data, dask.array.core.Array):
+        da = dask.array
+    else:
+        da = np
+
     clouds_values = [3, 8, 9, 10]
 
     scl_data = scl_data.sel(band='SCL')
