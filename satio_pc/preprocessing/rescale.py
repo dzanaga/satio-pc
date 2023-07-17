@@ -66,21 +66,30 @@ def rescale_ts(ds20,
                nodata_value=0,
                sigma=0.5):
 
-    chunks = list(ds20.chunks)
+    if isinstance(ds20.data, da.core.Array):
+        chunks = list(ds20.chunks)
 
-    for i in -1, -2:
-        chunks[i] = tuple(map(lambda x: x * scale, chunks[i]))
+        for i in -1, -2:
+            chunks[i] = tuple(map(lambda x: x * scale, chunks[i]))
 
-    darr_scaled = da.map_blocks(
-        _rescale_ts,
-        ds20.data,
-        dtype=ds20.dtype,
-        chunks=chunks,
-        scale=scale,
-        order=order,
-        preserve_range=preserve_range,
-        nodata_value=nodata_value,
-        sigma=sigma)
+        darr_scaled = da.map_blocks(
+            _rescale_ts,
+            ds20.data,
+            dtype=ds20.dtype,
+            chunks=chunks,
+            scale=scale,
+            order=order,
+            preserve_range=preserve_range,
+            nodata_value=nodata_value,
+            sigma=sigma)
+
+    else:
+        darr_scaled = _rescale_ts(ds20.data,
+                                  scale=scale,
+                                  order=order,
+                                  preserve_range=preserve_range,
+                                  nodata_value=nodata_value,
+                                  sigma=sigma)
 
     xmin, ymin, xmax, ymax = ds20.ewc.bounds
     new_res = ds20.attrs.get('resolution',
