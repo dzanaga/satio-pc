@@ -52,11 +52,14 @@ class ESAWorldCoverTimeSeries:
                                           use_all_obs)
 
     def interpolate(self):
-        darr_interp = da.map_blocks(
-            interpolate_ts_linear,
-            self._obj.data,
-            dtype=self._obj.dtype,
-            chunks=self._obj.chunks)
+        if isinstance(self._obj.data, da.core.Array):
+            darr_interp = da.map_blocks(
+                interpolate_ts_linear,
+                self._obj.data,
+                dtype=self._obj.dtype,
+                chunks=self._obj.chunks)
+        else:
+            darr_interp = interpolate_ts_linear(self._obj.data)
 
         out = self._obj.copy(data=darr_interp)
         return out

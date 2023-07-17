@@ -382,21 +382,31 @@ def rsi_ts(ts, indices, clip=True, rsi_meta=None):
         raise ValueError(f"Remote sensing index '{unsupported}' not supported."
                          f" Supported indices: {supported_rsis}")
 
-    chunks = list(ts.chunks)
+    if isinstance(ts.data, da.core.Array):
+        chunks = list(ts.chunks)
 
-    nout = len(indices)
-    chunks[1] = (nout,) * len(chunks[1])
+        nout = len(indices)
+        chunks[1] = (nout,) * len(chunks[1])
 
-    new_ts = da.map_blocks(
-        _rsi_chunk,
-        ts.data,
-        ts.band.values.tolist(),
-        indices,
-        dtype=ts.dtype,
-        chunks=chunks,
-        clip=clip,
-        rsi_meta=rsi_meta,
-    )
+        new_ts = da.map_blocks(
+            _rsi_chunk,
+            ts.data,
+            ts.band.values.tolist(),
+            indices,
+            dtype=ts.dtype,
+            chunks=chunks,
+            clip=clip,
+            rsi_meta=rsi_meta,
+        )
+    else:
+        new_ts = _rsi_chunk(
+            ts.data,
+            ts.band.values.tolist(),
+            indices,
+            dtype=ts.dtype,
+            chunks=chunks,
+            clip=clip,
+            rsi_meta=rsi_meta)
 
     new_darr = xr.DataArray(new_ts,
                             dims=ts.dims,
