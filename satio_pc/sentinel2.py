@@ -13,6 +13,16 @@ from satio_pc import parallelize
 from satio_pc.preprocessing.timer import FeaturesTimer
 
 
+BANDS_10M = ['B02', 'B03', 'B04', 'B08']
+BANDS_20M = ['B05', 'B06', 'B07', 'B8A', 'B11', 'B12', 'SCL']
+BANDS_60M = ['B01', 'B09', 'B10']
+
+BANDS_RESOLUTION = dict(zip(BANDS_10M + BANDS_20M + BANDS_60M,
+                            [10] * len(BANDS_10M) +
+                            [20] * len(BANDS_20M) +
+                            [60] * len(BANDS_60M)))
+
+
 def get_quality_values(item):
     meta_url = item.assets['product-metadata'].href
     response = requests.get(meta_url)
