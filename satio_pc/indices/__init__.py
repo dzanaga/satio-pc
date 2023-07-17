@@ -403,8 +403,6 @@ def rsi_ts(ts, indices, clip=True, rsi_meta=None):
             ts.data,
             ts.band.values.tolist(),
             indices,
-            dtype=ts.dtype,
-            chunks=chunks,
             clip=clip,
             rsi_meta=rsi_meta)
 
