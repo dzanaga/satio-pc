@@ -1,0 +1,46 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "src/satio_pc/_version.py"
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+  "/dist",
+  "/notebooks",
+  "/scripts"
+]
+
+[project]
+name = "satio-pc"
+dynamic = ["version"]
+authors = [
+  { name="Daniele Zanaga"},
+]
+description = "Sentinel-2 features processing"
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    'azure-storage-blob',
+    'boto3',
+    'dask',
+    'dask_image',
+    'geopandas',
+    'h5netcdf',
+    'loguru',
+    'numba',
+    'python-dateutil',
+    'rasterio',
+    'rio-cogeo',
+    'scikit-image',
+    'scipy',
+    'shapely',
+    'stackstac',
+    'xarray',
+    'tqdm',
+]
