@@ -245,10 +245,57 @@ def load_features_geotiff(feat_fn):
         bands = eval(src.tags()['bands'])
 
         arr = restore_data(arr, scales, offsets, nodata)
+        bounds = src.bounds
+        epsg = src.crs.to_epsg()
 
-    # feats = Features(arr, bands)
-    # TODO: read bounds from geotiff -> return xr.DataArray
-    raise NotImplementedError
+    attrs = {'epsg': epsg,
+             'bounds': bounds}
+
+    new_y, new_x = compute_pixel_coordinates(bounds, arr.shape[-2:])
+
+    darr = xr.DataArray(arr,
+                        dims=['band', 'y', 'x'],
+                        coords={'band': bands,
+                                'y': new_y,
+                                'x': new_x},
+                        attrs=attrs)
+
+    return darr
+
+
+def compute_pixel_coordinates(bounds, shape):
+    """
+    Compute the y and x coordinates for every pixel in an image.
+
+    Args:
+    bounds (tuple): A tuple containing (xmin, ymin, xmax, ymax).
+    shape (tuple): A tuple containing the image shape (rows, columns).
+
+    Returns:
+    tuple: Two arrays containing y and x coordinates for every pixel.
+    """
+    xmin, ymin, xmax, ymax = bounds
+    rows, cols = shape
+
+    x_res = (xmax - xmin) / cols
+    y_res = (ymax - ymin) / rows
+
+    if x_res != y_res:
+        raise ValueError("Different resolution for y and x axis are not "
+                         "supported. Bounds and shape are not consistent "
+                         "with the same resolution on both axis.")
+
+    res_half = x_res / 2
+
+    xx = np.linspace(xmin + res_half,
+                     xmax - res_half,
+                     cols)
+
+    yy = np.linspace(ymax - res_half,
+                     ymin + res_half,
+                     rows)
+
+    return yy, xx
 
 
 def _get_jp2_compression_profile(compress_tag):
