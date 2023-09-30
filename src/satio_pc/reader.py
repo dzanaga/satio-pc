@@ -2,7 +2,7 @@ import numpy as np
 import xarray as xr
 import rasterio.windows
 from rasterio.enums import Resampling
-
+from loguru import logger
 from stackstac.stack import items_to_plain, prepare_items, to_coords, to_attrs
 from stackstac.to_dask import asset_table_to_reader_and_window
 from stackstac.rio_reader import AutoParallelRioReader
@@ -177,7 +177,7 @@ class S2TileReader:
 
         assets_10m = set(['B02', 'B03', 'B04', 'B08'])
         assets_20m = set(['B05', 'B06', 'B07', 'B8A', 'B11', 'B12'])
-        assets_60m = set(['B01', 'B09'])
+        assets_60m = set(['B01', 'B09', 'WVP'])
 
         sbands = set(bands)
 
@@ -193,8 +193,11 @@ class S2TileReader:
             dtype = np.uint8
             resolution = 20
         else:
-            raise ValueError(
-                f"Bands is a mix of resolutions or not recognized: {bands}")
+            # raise ValueError(
+            #     f"Bands is a mix of resolutions or not recognized: {bands}")
+            logger.warning(f"Bands is a mix of resolutions or"
+                           f"not recognized: {bands}. "
+                           "Suggesting 10m resolution.")
 
         return bands, dtype, resolution
 
@@ -202,9 +205,17 @@ class S2TileReader:
              bounds,
              epsg,
              bands,
-             max_workers=20):
+             resolution=None,
+             max_workers=20,
+             resampling=None):
 
-        assets, dtype, resolution = self.assets(bands)
+        assets, dtype, native_resolution = self.assets(bands)
+
+        if resolution is None:
+            resolution = native_resolution
+            
+        if resampling is None:
+            resampling = Resampling.nearest
 
         darr = load_items(
             self.items,
@@ -215,7 +226,7 @@ class S2TileReader:
             dtype,
             xy_coords='center',
             fill_value=0,
-            resampling=Resampling.nearest,
+            resampling=resampling,
             max_workers=max_workers,
         )
         return darr
