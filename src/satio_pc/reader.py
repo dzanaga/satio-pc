@@ -229,7 +229,7 @@ class S2TileReader:
             self._items.items = sorted(self._items.items,
                                        key=lambda item: item.datetime)
 
-            if self._add_view_angles:
+            if self._add_view_angles and len(self._items):
                 logger.debug("Parsing mean_view_azimuth and mean_view_zenith "
                              "angles properties.")
                 self._items = add_mean_view_angles(self._items)
