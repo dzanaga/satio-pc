@@ -1,3 +1,6 @@
+import xml.etree.ElementTree as ET
+
+import requests
 import numpy as np
 import xarray as xr
 import rasterio.windows
@@ -7,8 +10,61 @@ from stackstac.stack import items_to_plain, prepare_items, to_coords, to_attrs
 from stackstac.to_dask import asset_table_to_reader_and_window
 from stackstac.rio_reader import AutoParallelRioReader
 
-from satio_pc.utils import parallelize
+from satio_pc import parallelize
 from satio_pc.sentinel2 import query_l2a_items
+
+
+def get_view_angles(item):
+    """Parse GRANULE xml for the mean view azimuth and zenith angles.
+    Returns 2 dictionaries azimuth and zenith of the angles for each band"""
+    
+    url = item.assets['granule-metadata'].href
+    
+    response = requests.get(url)
+    response.raise_for_status()  # Raise an exception for HTTP errors
+
+    root = ET.fromstring(response.content)
+
+    # Extract the namespace from the root tag
+    namespace = None
+    for attr_name, attr_value in root.attrib.items():
+        namespace = '{' + attr_value.split()[0] + '}'
+    
+    azimuth = {}
+    zenith = {}
+    
+    el = root.find(".//Mean_Viewing_Incidence_Angle_List",
+                   namespaces={"n1": namespace})
+    for angle in el.findall('Mean_Viewing_Incidence_Angle'):
+        band_id = angle.attrib['bandId']
+        zenith[band_id] = float(angle.find('ZENITH_ANGLE').text)
+        azimuth[band_id] = float(angle.find('AZIMUTH_ANGLE').text)
+     
+    return azimuth, zenith
+
+
+def get_mean_view_angles(item):
+    """Compute mean of the angles across all bands"""
+    azimuth, zenith = get_view_angles(item)
+    mean_azimuth = float(np.array(list(azimuth.values())).mean())
+    mean_zenith = float(np.array(list(zenith.values())).mean())
+    return mean_azimuth, mean_zenith
+
+
+def add_mean_view_angles(items, workers=8):
+    """Add the mean azimuth and zenith angles to the STAC items"""
+    
+    # metadata is parsed in a ThreadPool to reduce network latency
+    items_azimuth, items_zenith = list(zip(*parallelize(
+        get_mean_view_angles,
+        items,
+        max_workers=workers)))
+
+    for item, azimuth, zenith in zip(items, items_azimuth, items_zenith):
+        item.properties['s2:mean_view_azimuth'] = azimuth
+        item.properties['s2:mean_view_zenith'] = zenith
+        
+    return items
 
 
 def load_reader_table_items(reader_table, spec, fill_value, dtype):
@@ -148,7 +204,8 @@ class S2TileReader:
                  start_date,
                  end_date,
                  max_cloud_cover=90,
-                 filter_corrupted=True):
+                 filter_corrupted=True,
+                 add_view_angles=True):
 
         self._tile = tile
         self._start_date = start_date
@@ -158,6 +215,7 @@ class S2TileReader:
         self._filter_corrupted = filter_corrupted
 
         self._items = None
+        self._add_view_angles = add_view_angles
 
     @property
     def items(self):
@@ -171,6 +229,11 @@ class S2TileReader:
             self._items.items = sorted(self._items.items,
                                        key=lambda item: item.datetime)
 
+            if self._add_view_angles:
+                logger.debug("Parsing mean_view_azimuth and mean_view_zenith "
+                             "angles properties.")
+                self._items = add_mean_view_angles(self._items)
+                
         return self._items
 
     def assets(self, bands):

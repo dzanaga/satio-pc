@@ -2,8 +2,8 @@ import shutil
 from pathlib import Path
 from loguru import logger
 
-from satio_pc.utils import random_string
-from satio_pc.utils.azure import AzureBlobReader
+from satio_pc import random_string
+from satio_pc.azure import AzureBlobReader
 
 
 DEFAULT_SETTINGS = {

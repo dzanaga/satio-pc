@@ -1,3 +1,4 @@
+import string
 import concurrent.futures
 from tqdm.auto import tqdm
 
@@ -39,3 +40,10 @@ def parallelize(f,
         else:
             results = list(ex.map(f, my_iter))
     return results
+
+
+def random_string(n=8):
+    x = ''.join(random.choice(string.ascii_uppercase +
+                              string.ascii_lowercase +
+                              string.digits) for _ in range(n))
+    return x
