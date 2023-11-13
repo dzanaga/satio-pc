@@ -91,7 +91,7 @@ def rescale_ts(ds20,
                                   nodata_value=nodata_value,
                                   sigma=sigma)
 
-    xmin, ymin, xmax, ymax = ds20.ewc.bounds
+    xmin, ymin, xmax, ymax = ds20.satio.bounds
     new_res = ds20.attrs.get('resolution',
                              ds20.x[1] - ds20.x[0]) / scale
     new_res_half = new_res / 2

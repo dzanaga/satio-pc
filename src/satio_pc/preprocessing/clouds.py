@@ -113,7 +113,8 @@ def preprocess_scl(scl_data,
         and 7 bands:
 
         l2a_obs : number of valid observations (different from 0 in scl_data)
-        scl_invalid_before : ratio of invalid obs before morphological operations
+        scl_invalid_before : ratio of invalid obs before morphological
+            operations.
         scl_invalid_after : ratio of invalid obs after morphological operations
         scl_snow_cover : ratio of snow obs
         scl_water_cover : ratio of water obs
@@ -157,7 +158,7 @@ def preprocess_scl(scl_data,
     cover_notveg = (notveg & ts_obs).sum(axis=0) / obs
 
     # we want to avoid masking snow pixels if they are snow >90% of valid obs
-    # the non permanent snow is dilated to give a snow mask together with clouds
+    # the non permanent snow is dilated to give a snow mask together with clouds  # noqa
     valid_snow = (cover_snow / cover_valid) > max_invalid_snow_cover  # 2d
     invalid_snow = (cover_snow / cover_valid) <= max_invalid_snow_cover  # 2d
 
@@ -169,7 +170,7 @@ def preprocess_scl(scl_data,
                          for m in invalid_snow_mask.data])
     invalid_snow_mask = snow_dil & ~valid_snow_mask
 
-    # want to mask dark pixels (potential clouds shadows) if their occurrance is less
+    # want to mask dark pixels (potential clouds shadows) if their occurrance is less  # noqa
     # than min_valid_dark_cover. e.g. occasional clouds
     # not_cover_clouds = (-cover_clouds + 1)
     # clear_dark_cover = da.zeros_like(not_cover_clouds)

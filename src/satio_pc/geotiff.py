@@ -1,6 +1,5 @@
 import re
 import os
-from pathlib import Path
 from typing import List, Dict
 
 from loguru import logger
@@ -71,9 +70,10 @@ def get_rasterio_profile_shape(shape,
     base_profile = DefaultProfile()
 
     if len(shape) == 2:
-        shape = [1] + shape
-
-    count, height, width = shape
+        count = 1
+        height, width = shape
+    else:
+        count, height, width = shape
 
     crs = CRS.from_epsg(epsg)
 
@@ -198,7 +198,8 @@ def save_features_geotiff(data,
         epsg (int, optional): _description_. Defaults to 4326.
         filename (str, optional): _description_. Defaults to None.
         tags (Dict, optional): _description_. Defaults to None.
-        compress_tag (str, optional): _description_. Defaults to 'deflate-uint16'.
+        compress_tag (str, optional): _description_. Defaults to
+        'deflate-uint16'.
 
     """
     compress_profile, dtype_value_limits, dtype = get_compression_profile(

@@ -126,7 +126,7 @@ def preprocess_gamma0(s1,
         # download
         logger.info("Loading block data")
         timer10.load.start()
-        s1 = s1.ewc.cache(tmpdirname)
+        s1 = s1.satio.cache(tmpdirname)
         # count obs
         obs_gamma0 = count_gamma0_obs(s1)
         timer10.load.stop()
@@ -136,26 +136,26 @@ def preprocess_gamma0(s1,
         logger.info("Applying multi-temporal speckle filter")
         if multitemp_speckle:
             timer10.speckle.start()
-            s1_fil = (s1.ewc.multitemporal_speckle(**speckle_kwargs)
-                      .ewc.cache(tmpdirname))
+            s1_fil = (s1.satio.multitemporal_speckle(**speckle_kwargs)
+                      .satio.cache(tmpdirname))
             timer10.speckle.stop()
         else:
             s1_fil = s1
 
         logger.info("Compositing 10m block data")
         timer10.composite.start()
-        s1_comp = s1_fil.ewc.composite(
+        s1_comp = s1_fil.satio.composite(
             freq=composite_freq,
             window=composite_window,
             start=start_date,
-            end=end_date).ewc.cache(tmpdirname)
+            end=end_date).satio.cache(tmpdirname)
         timer10.composite.stop()
 
         logger.info("Interpolating 10m block data")
         # interpolation
         timer10.interpolate.start()
-        s1_interp = s1_comp.ewc.interpolate(
-        ).ewc.cache(tmpdir)
+        s1_interp = s1_comp.satio.interpolate(
+        ).satio.cache(tmpdir)
         timer10.interpolate.stop()
 
         timer10.load.log()

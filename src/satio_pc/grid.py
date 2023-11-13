@@ -13,6 +13,14 @@ import satio_pc
 from satio_pc.layers import load_s2tile_windows
 
 
+def slash_tile(tile: str):
+
+    if len(tile) != 5:
+        raise ValueError(f"tile should be a str of len 5, not {tile}")
+
+    return f"{tile[:2]}/{tile[2]}/{tile[3:]}"
+
+
 def tile_to_epsg(tile):
     row = tile[2]
     zone = tile[:2]

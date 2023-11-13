@@ -281,7 +281,7 @@ def load_l2a(bounds,
             if len(assets[res]) == 0:
                 continue
             # harmonize values for processing baseline 4.0 (25th Jan 2022)
-            ds[res] = ds[res].ewc.harmonize()
+            ds[res] = ds[res].satio.harmonize()
 
     return ds
 
@@ -309,66 +309,66 @@ def preprocess_l2a_cache(ds_dict,
         # download
         logger.info("Loading block data")
         timer10.load.start()
-        ds10_block = ds10_block.ewc.cache(tmpdirname)
+        ds10_block = ds10_block.satio.cache(tmpdirname)
         timer10.load.stop()
 
         timer20.load.start()
-        ds20_block = ds20_block.ewc.cache(tmpdirname)
-        scl20_block = scl20_block.ewc.cache(tmpdirname)
-        scl10_block = scl20_block.ewc.rescale(scale=2,
-                                              order=0)
-        scl10_block = scl10_block.ewc.cache(tmpdirname)
+        ds20_block = ds20_block.satio.cache(tmpdirname)
+        scl20_block = scl20_block.satio.cache(tmpdirname)
+        scl10_block = scl20_block.satio.rescale(scale=2,
+                                                order=0)
+        scl10_block = scl10_block.satio.cache(tmpdirname)
         timer20.load.stop()
 
         # 10m
         # mask clouds
         timer10.composite.start()
-        ds10_block_masked = ds10_block.ewc.mask(
-            scl10_block).ewc.cache(tmpdirname)
+        ds10_block_masked = ds10_block.satio.mask(
+            scl10_block).satio.cache(tmpdirname)
 
         logger.info("Compositing 10m block data")
         # composite
-        ds10_block_comp = ds10_block_masked.ewc.composite(
+        ds10_block_comp = ds10_block_masked.satio.composite(
             freq=composite_freq,
             window=composite_window,
             start=start_date,
-            end=end_date).ewc.cache(tmpdirname)
+            end=end_date).satio.cache(tmpdirname)
         timer10.composite.stop()
 
         logger.info("Interpolating 10m block data")
         # interpolation
         timer10.interpolate.start()
-        ds10_block_interp = ds10_block_comp.ewc.interpolate(
-        ).ewc.cache(tmpdirname)
+        ds10_block_interp = ds10_block_comp.satio.interpolate(
+        ).satio.cache(tmpdirname)
         timer10.interpolate.stop()
 
         # 20m
         # mask
         timer20.composite.start()
-        ds20_block_masked = ds20_block.ewc.mask(
-            scl20_block).ewc.cache(tmpdirname)
+        ds20_block_masked = ds20_block.satio.mask(
+            scl20_block).satio.cache(tmpdirname)
 
         logger.info("Compositing 20m block data")
         # composite
-        ds20_block_comp = ds20_block_masked.ewc.composite(
+        ds20_block_comp = ds20_block_masked.satio.composite(
             freq=composite_freq,
             window=composite_window,
             start=start_date,
-            end=end_date).ewc.cache(tmpdirname)
+            end=end_date).satio.cache(tmpdirname)
         timer20.composite.stop()
 
         logger.info("Interpolating 20m block data")
         # interpolation
         timer20.interpolate.start()
-        ds20_block_interp = ds20_block_comp.ewc.interpolate(
-        ).ewc.cache(tmpdirname)
+        ds20_block_interp = ds20_block_comp.satio.interpolate(
+        ).satio.cache(tmpdirname)
         timer20.interpolate.stop()
 
         logger.info("Merging 10m and 20m series")
         # merging to 10m cleaned data
-        ds20_block_interp_10m = ds20_block_interp.ewc.rescale(scale=2,
-                                                              order=1,
-                                                              nodata_value=0)
+        ds20_block_interp_10m = ds20_block_interp.satio.rescale(scale=2,
+                                                                order=1,
+                                                                nodata_value=0)
         dsm10 = xr.concat([ds10_block_interp,
                            ds20_block_interp_10m],
                           dim='band')
@@ -386,7 +386,7 @@ def preprocess_l2a_cache(ds_dict,
         for t in timer10, timer20:
             t.log()
 
-    dsm10 = dsm10.ewc.cache(tmpdir)
+    dsm10 = dsm10.satio.cache(tmpdir)
 
     return dsm10
 
@@ -410,68 +410,68 @@ def preprocess_l2a(ds_dict,
     # download
     logger.info("Loading block data")
     timer10.load.start()
-    ds10_block = ds10_block.ewc.persist_chunk()
+    ds10_block = ds10_block.satio.persist_chunk()
     timer10.load.stop()
 
     timer20.load.start()
-    ds20_block = ds20_block.ewc.persist_chunk()
-    scl20_block = scl20_block.ewc.persist_chunk()
-    scl10_block = scl20_block.ewc.rescale(scale=2,
-                                          order=0)
-    scl10_block = scl10_block.ewc.persist_chunk()
+    ds20_block = ds20_block.satio.persist_chunk()
+    scl20_block = scl20_block.satio.persist_chunk()
+    scl10_block = scl20_block.satio.rescale(scale=2,
+                                            order=0)
+    scl10_block = scl10_block.satio.persist_chunk()
     timer20.load.stop()
 
     # 10m
     # mask clouds
     timer10.composite.start()
-    ds10_block_masked = ds10_block.ewc.mask(
-        scl10_block).ewc.persist_chunk()
+    ds10_block_masked = ds10_block.satio.mask(
+        scl10_block).satio.persist_chunk()
 
     logger.info("Compositing 10m block data")
     # composite
-    ds10_block_comp = ds10_block_masked.ewc.composite(
+    ds10_block_comp = ds10_block_masked.satio.composite(
         freq=composite_freq,
         window=composite_window,
         mode=composite_mode,
         start=start_date,
-        end=end_date).ewc.persist_chunk()
+        end=end_date).satio.persist_chunk()
     timer10.composite.stop()
 
     logger.info("Interpolating 10m block data")
     # interpolation
     timer10.interpolate.start()
-    ds10_block_interp = ds10_block_comp.ewc.interpolate(
-    ).ewc.persist_chunk()
+    ds10_block_interp = ds10_block_comp.satio.interpolate(
+    ).satio.persist_chunk()
     timer10.interpolate.stop()
 
     # 20m
     # mask
     timer20.composite.start()
-    ds20_block_masked = ds20_block.ewc.mask(
-        scl20_block).ewc.persist_chunk()
+    ds20_block_masked = ds20_block.satio.mask(
+        scl20_block).satio.persist_chunk()
 
     logger.info("Compositing 20m block data")
     # composite
-    ds20_block_comp = ds20_block_masked.ewc.composite(
+    ds20_block_comp = ds20_block_masked.satio.composite(
         freq=composite_freq,
         window=composite_window,
         mode=composite_mode,
         start=start_date,
-        end=end_date).ewc.persist_chunk()
+        end=end_date).satio.persist_chunk()
     timer20.composite.stop()
 
     logger.info("Interpolating 20m block data")
     # interpolation
     timer20.interpolate.start()
-    ds20_block_interp = ds20_block_comp.ewc.interpolate(
-    ).ewc.persist_chunk()
+    ds20_block_interp = ds20_block_comp.satio.interpolate(
+    ).satio.persist_chunk()
     timer20.interpolate.stop()
 
     logger.info("Merging 10m and 20m series")
     # merging to 10m cleaned data
-    ds20_block_interp_10m = ds20_block_interp.ewc.rescale(scale=2,
-                                                          order=1,
-                                                          nodata_value=0)
+    ds20_block_interp_10m = ds20_block_interp.satio.rescale(scale=2,
+                                                            order=1,
+                                                            nodata_value=0)
     dsm10 = xr.concat([ds10_block_interp,
                        ds20_block_interp_10m],
                       dim='band')
@@ -489,6 +489,6 @@ def preprocess_l2a(ds_dict,
     for t in timer10, timer20:
         t.log()
 
-    dsm10 = dsm10.ewc.persist_chunk()
+    dsm10 = dsm10.satio.persist_chunk()
 
     return dsm10

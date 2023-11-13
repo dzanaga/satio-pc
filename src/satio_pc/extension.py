@@ -1,10 +1,14 @@
 import warnings
 import atexit
 import tempfile
+import numpy as np
 import xarray as xr
 import dask.array as da
-from typing import List, Dict
+from typing import Dict
+from tqdm import tqdm
 
+from satio_pc import random_string
+from satio_pc.preprocessing import to_dataarray_coords, get_yx_coords
 from satio_pc.preprocessing.composite import calculate_moving_composite
 from satio_pc.preprocessing.interpolate import interpolate_ts_linear
 from satio_pc.preprocessing.rescale import rescale_ts
@@ -12,15 +16,22 @@ from satio_pc.preprocessing.speckle import multitemporal_speckle_ts
 from satio_pc.indices import rsi_ts
 from satio_pc.features import percentile
 from satio_pc.sentinel2 import mask_clouds, harmonize
+from satio_pc.superres import (SuperImage, SuperResCV,
+                               MODELS_NAMES_CV, MODELS_NAMES_SUPERIMAGE)
+
+SUPPORTED_SUPERRES_MODELS = (list(MODELS_NAMES_CV.keys()) +
+                             list(MODELS_NAMES_SUPERIMAGE.keys()))
 
 
-@xr.register_dataarray_accessor("ewc")
-class ESAWorldCoverTimeSeries:
+@xr.register_dataarray_accessor("satio")
+class SatioTimeSeries:
+
     def __init__(self, xarray_obj):
         self._obj = xarray_obj
         self._obj.attrs['bounds'] = self.bounds
         # run check that we have a timeseries
         # assert xarray_obj.dims == ('time', 'band', 'y', 'x')
+        self._superres_models = {}
 
     def rescale(self,
                 scale=2,
@@ -33,8 +44,115 @@ class ESAWorldCoverTimeSeries:
                           preserve_range=preserve_range,
                           nodata_value=nodata_value)
 
+    def _load_superres_model(self, model_name):
+        model = self._superres_models.get(model_name)
+        if model is None:
+            if model_name in MODELS_NAMES_CV.keys():
+                model = SuperResCV(model_name)
+            elif model_name in MODELS_NAMES_SUPERIMAGE.keys():
+                model = SuperImage(model_name)
+            else:
+                raise ValueError(f"Invalid model name: {model_name}. "
+                                 "Should be one of "
+                                 f"{SUPPORTED_SUPERRES_MODELS}.")
+            self._superres_models[model_name] = model
+        return model
+
+    def superscale(self,
+                   scale=4,
+                   model_name='edsr-base',
+                   progress_bar=True):
+        """
+        Upscale an image by a given scale factor using a specified model.
+
+        Args:
+            scale (int): The scale factor to use for the upscaling.
+                Supported values are 2, 3, 4. (For 'lapsrn' only (2, 4, 8).
+                Default is 4.
+            model_name (str): The name of the model to use for the
+                upscaling. Should be one of ('lapsrn', 'espcn', 'fsrcnn',
+                'drln', 'drln-bam', 'mdsr', 'edsr-base', 'edsr', 'msrn',
+                'a2n', 'pan').
+                Default is 'edsr-base'.
+
+        Returns:
+            xr.DataArray: The upscaled timeseries.
+        """
+        model = self._load_superres_model(model_name)
+
+        data = self._obj.data
+
+        t, b, y, x = data.shape
+        # data = np.reshape(data, (t * b, y, x))
+
+        range_t = tqdm(range(t)) if progress_bar else range(t)
+        new_data = [model.upscale(data[ti], progress_bar=False, scale=scale)
+                    for ti in range_t]
+        new_data = np.array(new_data)
+        new_data = new_data.astype(data.dtype)
+        # _, new_y, new_x = new_data.shape
+        # new_data = np.reshape(new_data, (t, b, new_y, new_x))
+
+        new_coords = self._obj.coords.to_dataset().drop_vars(['x', 'y'])
+        y, x = get_yx_coords(new_data, self.bounds)
+        new_coords['y'] = y
+        new_coords['x'] = x
+
+        # epsg = self._obj.attrs.get('epsg', None)
+        # new_obj = to_dataarray(new_data,
+        #                        self.bounds,
+        #                        epsg=epsg,
+        #                        bands=self._obj.band,
+        #                        time=self._obj.time,
+        #                        attrs=self._obj.attrs)
+        new_obj = to_dataarray_coords(new_data,
+                                      self._obj.dims,
+                                      new_coords)
+        return new_obj
+
     def mask(self, mask):
         return mask_clouds(self._obj, mask)
+
+    def preprocess_scl(self,
+                       erode_r=3,
+                       dilate_r=13,
+                       max_invalid_ratio=1,
+                       snow_dilate_r=3,
+                       max_invalid_snow_cover=0.9):
+        """
+        Preprocess Sentinel-2 Scene Classification Map (SCL) to remove clouds
+        and snow pixels.
+
+        Args:
+            erode_r (int): Radius of the erosion kernel used to remove small
+                cloud pixels.
+            dilate_r (int): Radius of the dilation kernel used to increase
+                clouds footprints after erosion.
+            max_invalid_ratio (float): Maximum ratio of invalid pixels (clouds,
+                cloud shadows, snow) allowed in the SCL. If the ratio is above
+                this threshold, the pixels are not masked. Default is 1.
+            snow_dilate_r (int): Radius of the dilation kernel used to remove
+                snow pixels.
+            max_invalid_snow_cover (float): Maximum ratio of snow pixels
+                in the time series. If the ratio is above this threshold,
+                the pixels are not masked. Default is 0.9.
+
+        Returns:
+            tuple: A tuple containing the mask and auxiliary data
+            xr.DataArrays.
+        """
+        if 'SCL' not in self._obj.band.values:
+            raise ValueError("SCL band not found in the time series.")
+
+        from satio_pc.preprocessing.clouds import preprocess_scl
+
+        scl = preprocess_scl(self._obj.sel(band=['SCL']),
+                             erode_r=erode_r,
+                             dilate_r=dilate_r,
+                             max_invalid_ratio=max_invalid_ratio,
+                             snow_dilate_r=snow_dilate_r,
+                             max_invalid_snow_cover=max_invalid_snow_cover)
+        return scl.mask, scl.aux
 
     def composite(self,
                   freq=7,
@@ -94,6 +212,31 @@ class ESAWorldCoverTimeSeries:
     def harmonize(self):
         return harmonize(self._obj)
 
+    def coregister(self,
+                   reference_band: str = 'B08',
+                   max_translation: int = 3,
+                   mask_zeros: bool = True):
+        """
+        Coregister the time-series data using the gradient of the median
+        of a reference band.
+
+        Args:
+            reference_band (str): The reference band to use for coregistration.
+            max_translation (int): The maximum number of pixels to translate
+                the data.
+            mask_zeros (bool): Whether to mask out zero values for the 
+                registration process. It is reccomened to set this to True and
+                mask clouds before coregistering.
+
+        Returns:
+            The coregistered data.
+        """
+        from satio_pc.preprocessing.coregistration import coregister
+        return coregister(self._obj,
+                          reference_band=reference_band,
+                          max_translation=max_translation,
+                          mask_zeros=mask_zeros)
+
     def cache(self, tempdir='.', chunks=(-1, -1, 256, 256)):
         tmpfile = tempfile.NamedTemporaryFile(suffix='.nc',
                                               prefix='satio-',
@@ -148,6 +291,9 @@ class ESAWorldCoverTimeSeries:
         import panel as pn  # noqa
         import panel.widgets as pnw
 
+        if self._obj.name is None:
+            self._obj.name = f'satio-ts-{random_string(6)}'
+
         bands = ['B04', 'B03', 'B02'] if bands is None else bands
         im = self._obj.sel(band=bands).clip(vmin, vmax) / (vmax - vmin)
         return im.interactive.sel(
@@ -165,6 +311,9 @@ class ESAWorldCoverTimeSeries:
         import hvplot.pandas  # noqa
         import panel as pn  # noqa
         import panel.widgets as pnw
+
+        if self._obj.name is None:
+            self._obj.name = f'satio-ts-{random_string(6)}'
 
         im = self._obj
         band = im.band[0] if band is None else band
