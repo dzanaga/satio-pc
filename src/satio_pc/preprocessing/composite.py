@@ -43,6 +43,9 @@ def nonzero_reducer(arr, mode):
         res = reducer_func(arr.data, axis=0)
 
     # res comes out as float. nans will be casted to 0s when returning to int
+    # but raises
+    if start_dtype == np.uint16:
+        res[np.isnan(res)] = 0
     return res.astype(start_dtype)
 
 

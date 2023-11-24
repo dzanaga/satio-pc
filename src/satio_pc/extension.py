@@ -285,6 +285,16 @@ class SatioTimeSeries:
                                   compress_tag=compress_tag,
                                   **profile_kwargs)
 
+    def add_band(self, data, name):
+        data = xr.DataArray(
+            np.expand_dims(data, axis=(0, 1)),
+            dims=['time', 'band', 'y', 'x'],
+            coords={'time': self._obj.time,
+                    'band': [name],
+                    'y': self._obj.y,
+                    'x': self._obj.x})
+        return xr.concat([self._obj, data], dim='band')
+
     def rgb(self, bands=None, vmin=0, vmax=1000, **kwargs):
         import hvplot.xarray  # noqa
         import hvplot.pandas  # noqa
