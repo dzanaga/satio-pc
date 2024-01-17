@@ -16,19 +16,21 @@ layers_description = {'s2grid': 'Sentinel-2 tiles grid GeoJSON',
                                   'coutries layer. Equivalent to '
                                   'countries.unary_union.simplify(0.01)')}
 
+
 def _fn(layer):
     if layer not in _basenames.keys():
         raise ValueError("The requested layer is not available. "
                          f"Available layers: {layers_description}")
-    
+
     fn = files("satio_pc.layers").joinpath(_basenames[layer])
     return fn
+
 
 def load(layer, mask=None, bbox=None):
     """
     Load layer. `mask` and `bbox` can be a shapely geometry or a
     (xmin, ymin, xmax, ymax) lat lon tuple to restrict the layer reading.
-    
+
     Avalibale layers:
 
     {'s2grid': 'Sentinel-2 tiles grid GeoJSON',
