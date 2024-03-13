@@ -108,12 +108,6 @@ def rescale_ts(ds20,
                         ymin + new_res_half,
                         int(old_y * scale))
 
-    logger.debug(f"ymax - ymin: {ymax - ymin}")
-    logger.debug(f'Old x: {ds20.x.size}')
-    logger.debug(f'Old y: {ds20.y.size}')
-    logger.debug(f'New x: {new_x.size}')
-    logger.debug(f'New y: {new_y.size}')
-
     ds20u = xr.DataArray(darr_scaled,
                          dims=ds20.dims,
                          coords={'time': ds20.time,
