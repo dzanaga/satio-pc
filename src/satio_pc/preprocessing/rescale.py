@@ -1,7 +1,8 @@
 import warnings
+
+import dask.array as da
 import numpy as np
 import skimage
-import dask.array as da
 import xarray as xr
 
 
@@ -65,7 +66,7 @@ def rescale_ts(ds20,
                preserve_range=True,
                nodata_value=0,
                sigma=0.5):
-
+    from loguru import logger
     if isinstance(ds20.data, da.core.Array):
         chunks = list(ds20.chunks)
 
@@ -96,13 +97,22 @@ def rescale_ts(ds20,
                              ds20.x[1] - ds20.x[0]) / scale
     new_res_half = new_res / 2
 
+    old_x = ds20.x.size
+    old_y = ds20.y.size
+
     new_x = np.linspace(xmin + new_res_half,
                         xmax - new_res_half,
-                        int(ds20.shape[-2] * scale))
+                        int(old_x * scale))
 
     new_y = np.linspace(ymax - new_res_half,
                         ymin + new_res_half,
-                        int(ds20.shape[-1] * scale))
+                        int(old_y * scale))
+
+    logger.debug(f"ymax - ymin: {ymax - ymin}")
+    logger.debug(f'Old x: {ds20.x.size}')
+    logger.debug(f'Old y: {ds20.y.size}')
+    logger.debug(f'New x: {new_x.size}')
+    logger.debug(f'New y: {new_y.size}')
 
     ds20u = xr.DataArray(darr_scaled,
                          dims=ds20.dims,

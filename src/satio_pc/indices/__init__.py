@@ -34,10 +34,12 @@ Rouse, J. W., Haas, R. H., Schell, J. A., & Deering, D. W. (1974). Monitoring ve
 Tucker, C. J. (1979). Red and photographic infrared linear combinations for monitoring vegetation. Remote sensing of Environment, 8(2), 127-150.
 """  # noqa
 import sys
-import numpy as np
+
 import dask.array as da
+import numpy as np
 import xarray as xr
 
+EPS = 1e-7
 
 RSI_META_S2 = {
     'ndvi': {'bands': ['B08', 'B04'],
@@ -150,7 +152,7 @@ WL_B12, FWHM_B12 = (2.2024 + 2.1857) / 2, (0.174 + 0.184) / 2
 
 def norm_diff(arr1, arr2):
     """Returns the normalized difference of two bands"""
-    return (arr1 - arr2) / (arr1 + arr2)
+    return (arr1 - arr2) / (arr1 + arr2 + EPS)
 
 
 def get_rsi_function(rsi_name, meta=None):
@@ -210,7 +212,7 @@ def savi(B08, B04):
 
 
 def rep(B04, B07, B05, B06):
-    return 700 + 40 * ((((B04 + B07) / 2) - B05) / (B06 - B05))
+    return 700 + 40 * ((((B04 + B07) / 2) - B05) / (B06 - B05 + EPS))
 
 
 def anir(B04, B08, B11):
@@ -233,7 +235,7 @@ def avi(B04, B08):
 
 
 def nirv(B08, B04):
-    nirv = ((B08 - B04 / B08 + B04) - 0.08) * B08
+    nirv = ((B08 - B04 / B08 + B04 + EPS) - 0.08) * B08
     nirv[nirv < 0] = 0
     return nirv
 
