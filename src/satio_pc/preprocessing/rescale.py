@@ -11,6 +11,7 @@ def _rescale_ts(ts,
                 order=1,
                 preserve_range=True,
                 anti_aliasing=None,
+                anti_aliasing_sigma=None,
                 nodata_value=None):
 
     if order > 1:
@@ -46,7 +47,8 @@ def _rescale_ts(ts,
                 order=order,
                 preserve_range=preserve_range,
                 channel_axis=0,
-                anti_aliasing=anti_aliasing)
+                anti_aliasing=anti_aliasing,
+                anti_aliasing_sigma=anti_aliasing_sigma)
 
     if nodata_value is not None:
         new[da.isnan(new)] = nodata_value
@@ -60,8 +62,9 @@ def rescale_ts(ds20,
                scale=2,
                order=1,
                preserve_range=True,
-               nodata_value=0,
-               anti_aliasing=None):
+               anti_aliasing=None,
+               anti_aliasing_sigma=None,
+               nodata_value=None):
     from loguru import logger
     if isinstance(ds20.data, da.core.Array):
         chunks = list(ds20.chunks)
@@ -78,6 +81,7 @@ def rescale_ts(ds20,
             order=order,
             preserve_range=preserve_range,
             anti_aliasing=anti_aliasing,
+            anti_aliasing_sigma=anti_aliasing_sigma,
             nodata_value=nodata_value)
 
     else:
@@ -86,6 +90,7 @@ def rescale_ts(ds20,
                                   order=order,
                                   preserve_range=preserve_range,
                                   anti_aliasing=anti_aliasing,
+                                  anti_aliasing_sigma=anti_aliasing_sigma,
                                   nodata_value=nodata_value)
 
     xmin, ymin, xmax, ymax = ds20.satio.bounds

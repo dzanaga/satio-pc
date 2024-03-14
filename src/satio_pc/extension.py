@@ -38,12 +38,14 @@ class SatioTimeSeries:
                 order=1,
                 preserve_range=True,
                 anti_aliasing=None,
-                nodata_value=0):
+                anti_aliasing_sigma=None,
+                nodata_value=None):
         return rescale_ts(self._obj,
                           scale=scale,
                           order=order,
                           preserve_range=preserve_range,
                           anti_aliasing=anti_aliasing,
+                          anti_aliasing_sigma=anti_aliasing_sigma,
                           nodata_value=nodata_value)
 
     def _load_superres_model(self, model_name):
