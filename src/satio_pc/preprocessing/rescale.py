@@ -10,8 +10,9 @@ def _rescale_ts(ts,
                 scale=2,
                 order=1,
                 preserve_range=True,
-                nodata_value=None,
-                sigma=0.5):
+                anti_aliasing=None,
+                anti_aliasing_sigma=None,
+                nodata_value=None):
 
     if order > 1:
         raise ValueError('Skimage giving issues with nans and cubic interp')
@@ -33,12 +34,9 @@ def _rescale_ts(ts,
         shape[2] * scale), int(shape[3] * scale)
     new = np.empty(new_shape, dtype=new_dtype)
 
-    anti_aliasing = None
-    anti_aliasing_sigma = None
-
-    if scale < 1:
-        anti_aliasing = True,
-        anti_aliasing_sigma = sigma
+    # Only enable anti aliasing when not explicitly set
+    if scale < 1 and anti_aliasing is None:
+        anti_aliasing = True
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
@@ -64,8 +62,9 @@ def rescale_ts(ds20,
                scale=2,
                order=1,
                preserve_range=True,
-               nodata_value=0,
-               sigma=0.5):
+               anti_aliasing=None,
+               anti_aliasing_sigma=None,
+               nodata_value=None):
     from loguru import logger
     if isinstance(ds20.data, da.core.Array):
         chunks = list(ds20.chunks)
@@ -81,16 +80,18 @@ def rescale_ts(ds20,
             scale=scale,
             order=order,
             preserve_range=preserve_range,
-            nodata_value=nodata_value,
-            sigma=sigma)
+            anti_aliasing=anti_aliasing,
+            anti_aliasing_sigma=anti_aliasing_sigma,
+            nodata_value=nodata_value)
 
     else:
         darr_scaled = _rescale_ts(ds20.data,
                                   scale=scale,
                                   order=order,
                                   preserve_range=preserve_range,
-                                  nodata_value=nodata_value,
-                                  sigma=sigma)
+                                  anti_aliasing=anti_aliasing,
+                                  anti_aliasing_sigma=anti_aliasing_sigma,
+                                  nodata_value=nodata_value)
 
     xmin, ymin, xmax, ymax = ds20.satio.bounds
     new_res = ds20.attrs.get('resolution',
