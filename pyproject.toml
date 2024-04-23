@@ -16,7 +16,7 @@ exclude = [
 name = "satio-pc"
 dynamic = ["version"]
 authors = [
-  { name="Daniele Zanaga"},
+  {name="Daniele Zanaga"},
 ]
 description = "Sentinel-2 features processing"
 readme = "README.md"

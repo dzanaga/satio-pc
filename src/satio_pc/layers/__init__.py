@@ -1,6 +1,5 @@
 import json
-from importlib.resources import files, open_text
-
+from importlib.resources import as_file, files, open_text
 
 _basenames = {'s2grid': 's2grid_bounds.fgb',
               's2grid_all': 's2grid_all_bounds.fgb',
@@ -44,7 +43,9 @@ def load(layer, mask=None, bbox=None):
     """
     import geopandas as gpd
 
-    gdf = gpd.read_file(_fn(layer), mask=mask, bbox=bbox)
+    fn = _fn(layer)
+    with as_file(fn) as f:
+        gdf = gpd.read_file((f), mask=mask, bbox=bbox)
 
     if 's2grid' in layer:
         # convert column of strings to
