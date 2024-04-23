@@ -105,7 +105,7 @@ def compress_data(arr, dtype, *, min_value, max_value, nodata_value):
     with np.errstate(divide='ignore', invalid='ignore'):
         arr2 = arr2 / np.broadcast_to(scales, arr.shape)
 
-    arr2[~np.isfinite(arr)] = nodata_value
+    arr2[~np.isfinite(arr2)] = nodata_value
 
     return arr2.round().astype(dtype), np.squeeze(scales), np.squeeze(offsets)
 
