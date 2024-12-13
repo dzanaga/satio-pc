@@ -1,45 +1,47 @@
+import datetime
 import tempfile
 import xml.etree.ElementTree as ET
-import datetime
 
-import requests
-import numpy as np
-import xarray as xr
 import dask.array as da
+import numpy as np
+import requests
+import xarray as xr
 from loguru import logger
 
 import satio_pc  # noqa register extension
 from satio_pc import parallelize
 from satio_pc.preprocessing.timer import FeaturesTimer
 
+BANDS_10M = ["B02", "B03", "B04", "B08"]
+BANDS_20M = ["B05", "B06", "B07", "B8A", "B11", "B12", "SCL"]
+BANDS_60M = ["B01", "B09", "B10"]
 
-BANDS_10M = ['B02', 'B03', 'B04', 'B08']
-BANDS_20M = ['B05', 'B06', 'B07', 'B8A', 'B11', 'B12', 'SCL']
-BANDS_60M = ['B01', 'B09', 'B10']
-
-BANDS_RESOLUTION = dict(zip(BANDS_10M + BANDS_20M + BANDS_60M,
-                            [10] * len(BANDS_10M) +
-                            [20] * len(BANDS_20M) +
-                            [60] * len(BANDS_60M)))
+BANDS_RESOLUTION = dict(
+    zip(
+        BANDS_10M + BANDS_20M + BANDS_60M,
+        [10] * len(BANDS_10M) + [20] * len(BANDS_20M) + [60] * len(BANDS_60M),
+    )
+)
 
 
 def get_quality_values(item):
-    meta_url = item.assets['product-metadata'].href
+    meta_url = item.assets["product-metadata"].href
     response = requests.get(meta_url)
     xml_content = response.content
 
     root = ET.fromstring(xml_content)
 
     # find the Quality_Inspections element and get all the quality_check sub-elements
-    quality_checks = root.find(
-        './/Quality_Inspections').findall('quality_check')
+    quality_checks = root.find(".//Quality_Inspections").findall(
+        "quality_check"
+    )
 
     # create a dictionary to store the quality values
     quality_values = {}
 
     # iterate over the quality_check elements and extract the checkType and PASSED/FAILED value
     for qc in quality_checks:
-        check_type = qc.attrib['checkType']
+        check_type = qc.attrib["checkType"]
         value = qc.text
         quality_values[check_type] = value
 
@@ -49,38 +51,40 @@ def get_quality_values(item):
 def quality_passed(item):
     quality = get_quality_values(item)
     for k, v in quality.items():
-        if v != 'PASSED':
+        if v != "PASSED":
             return False
     return True
 
 
 def filter_corrupted_items(items, workers=10, verbose=True):
-    valid_flag = parallelize(quality_passed,
-                             items,
-                             max_workers=workers,
-                             progressbar=False)
+    valid_flag = parallelize(
+        quality_passed, items, max_workers=workers, progressbar=False
+    )
     if verbose:
-        corrupted_items_ids = [item.id for item, flag in zip(items, valid_flag)
-                               if not flag]
+        corrupted_items_ids = [
+            item.id for item, flag in zip(items, valid_flag) if not flag
+        ]
         nc = len(corrupted_items_ids)
         if nc:
-            logger.warning(f"Discarding {nc} / {len(items)} corrupted "
-                           f"products: {corrupted_items_ids}")
+            logger.warning(
+                f"Discarding {nc} / {len(items)} corrupted "
+                f"products: {corrupted_items_ids}"
+            )
 
     items.items = [i for i, flag in zip(items, valid_flag) if flag]
 
     return items
 
 
-def mask_clouds(darr, scl_mask):
+def mask_clouds(darr, scl_mask, nodata_value=0):
     """darr has dims (time, band, y, x),
     mask has dims (time, band, y, x)"""
     if isinstance(darr.data, da.core.Array):
         mask = da.broadcast_to(scl_mask.data, darr.shape)
-        darr_masked = da.where(~mask, 0, darr)
+        darr_masked = da.where(~mask, nodata_value, darr)
     else:
         mask = np.broadcast_to(scl_mask.data, darr.shape)
-        darr_masked = darr.where(mask, 0)
+        darr_masked = darr.where(mask, nodata_value)
     return darr.copy(data=darr_masked)
 
 
@@ -100,7 +104,7 @@ def force_unique_time(darr):
             c += 1
         new_time.append(v)
     new_time = np.array(new_time)
-    darr['time'] = new_time
+    darr["time"] = new_time
     return darr
 
 
@@ -122,16 +126,28 @@ def harmonize_tmp(data):
         A DataArray with all values harmonized to the old
         processing baseline.
     """
-    baseline = data.coords['s2:processing_baseline'].astype(float)
+    baseline = data.coords["s2:processing_baseline"].astype(float)
     baseline_flag = baseline < 4
 
     if all(baseline_flag):
         return data
 
     offset = 1000
-    bands = ["B01", "B02", "B03", "B04",
-             "B05", "B06", "B07", "B08",
-             "B8A", "B09", "B10", "B11", "B12"]
+    bands = [
+        "B01",
+        "B02",
+        "B03",
+        "B04",
+        "B05",
+        "B06",
+        "B07",
+        "B08",
+        "B8A",
+        "B09",
+        "B10",
+        "B11",
+        "B12",
+    ]
 
     old = data.isel(time=baseline_flag)
     to_process = list(set(bands) & set(data.band.data.tolist()))
@@ -144,7 +160,8 @@ def harmonize_tmp(data):
     new_harmonized -= offset
 
     new = xr.concat([new, new_harmonized], "band").sel(
-        band=data.band.data.tolist())
+        band=data.band.data.tolist()
+    )
     return xr.concat([old, new], dim="time")
 
 
@@ -165,32 +182,47 @@ def harmonize(data):
     """
     cutoff = datetime.datetime(2022, 1, 25)
     offset = 1000
-    bands = ["B01", "B02", "B03", "B04",
-             "B05", "B06", "B07", "B08",
-             "B8A", "B09", "B10", "B11", "B12"]
+    bands = [
+        "B01",
+        "B02",
+        "B03",
+        "B04",
+        "B05",
+        "B06",
+        "B07",
+        "B08",
+        "B8A",
+        "B09",
+        "B10",
+        "B11",
+        "B12",
+    ]
 
     old = data.sel(time=slice(cutoff))
 
     to_process = list(set(bands) & set(data.band.data.tolist()))
     new = data.sel(time=slice(cutoff, None)).drop_sel(band=to_process)
 
-    new_harmonized = data.sel(time=slice(
-        cutoff, None), band=to_process).clip(offset)
+    new_harmonized = data.sel(time=slice(cutoff, None), band=to_process).clip(
+        offset
+    )
     new_harmonized -= offset
 
     new = xr.concat([new, new_harmonized], "band").sel(
-        band=data.band.data.tolist())
+        band=data.band.data.tolist()
+    )
     return xr.concat([old, new], dim="time")
 
 
-def query_l2a_items(tile,
-                    start_date,
-                    end_date,
-                    max_cloud_cover,
-                    filter_corrupted):
-    import pystac_client
+def query_l2a_items(
+    tile, start_date, end_date, max_cloud_cover, filter_corrupted
+):
     import planetary_computer
-    from satio_pc.extension import ESAWorldCoverTimeSeries  # noqa register extension
+    import pystac_client
+
+    from satio_pc.extension import (
+        ESAWorldCoverTimeSeries,  # noqa register extension
+    )
 
     catalog = pystac_client.Client.open(
         "https://planetarycomputer.microsoft.com/api/stac/v1",
@@ -199,12 +231,14 @@ def query_l2a_items(tile,
 
     time_range = f"{start_date}/{end_date}"
 
-    query_params = {"eo:cloud_cover": {"lt": max_cloud_cover},
-                    "s2:mgrs_tile": {"eq": tile}}
+    query_params = {
+        "eo:cloud_cover": {"lt": max_cloud_cover},
+        "s2:mgrs_tile": {"eq": tile},
+    }
 
-    search = catalog.search(collections=["sentinel-2-l2a"],
-                            datetime=time_range,
-                            query=query_params)
+    search = catalog.search(
+        collections=["sentinel-2-l2a"], datetime=time_range, query=query_params
+    )
     items = search.item_collection()
 
     if filter_corrupted:
@@ -213,68 +247,66 @@ def query_l2a_items(tile,
     return items
 
 
-def load_l2a(bounds,
-             epsg,
-             tile,
-             start_date,
-             end_date,
-             bands=None,
-             max_cloud_cover=90,
-             filter_corrupted=True):
+def load_l2a(
+    bounds,
+    epsg,
+    tile,
+    start_date,
+    end_date,
+    bands=None,
+    max_cloud_cover=90,
+    filter_corrupted=True,
+):
     import stackstac
 
-    items = query_l2a_items(tile,
-                            start_date,
-                            end_date,
-                            max_cloud_cover,
-                            filter_corrupted)
+    items = query_l2a_items(
+        tile, start_date, end_date, max_cloud_cover, filter_corrupted
+    )
 
-    assets_10m = ['B02', 'B03', 'B04', 'B08']
-    assets_20m = ['B05', 'B06', 'B07', 'B8A', 'B11', 'B12']
-    assets_60m = ['B01', 'B09']
+    assets_10m = ["B02", "B03", "B04", "B08"]
+    assets_20m = ["B05", "B06", "B07", "B8A", "B11", "B12"]
+    assets_60m = ["B01", "B09"]
 
     if bands is None:
         bands = assets_10m + assets_20m + assets_60m
 
-    scl = 'SCL'
+    scl = "SCL"
 
     ds = {}
-    assets = {10: [b for b in bands if b in assets_10m],
-              20: [b for b in bands if b in assets_20m],
-              60: [b for b in bands if b in assets_60m],
-              'scl': [scl]}
+    assets = {
+        10: [b for b in bands if b in assets_10m],
+        20: [b for b in bands if b in assets_20m],
+        60: [b for b in bands if b in assets_60m],
+        "scl": [scl],
+    }
 
-    chunksize = {10: 1024,
-                 20: 512,
-                 60: 512,
-                 'scl': 512}
+    chunksize = {10: 1024, 20: 512, 60: 512, "scl": 512}
 
-    dtype = {10: np.uint16,
-             20: np.uint16,
-             60: np.uint16,
-             'scl': np.uint8}
+    dtype = {10: np.uint16, 20: np.uint16, 60: np.uint16, "scl": np.uint8}
 
-    keep_vars = ['time', 'band', 'y', 'x', 'id', 's2:processing_baseline']
+    keep_vars = ["time", "band", "y", "x", "id", "s2:processing_baseline"]
     for res in assets.keys():
         if len(assets[res]) == 0:
             continue
-        ds[res] = stackstac.stack(items,
-                                  assets=assets[res],
-                                  epsg=f'EPSG:{epsg}',
-                                  bounds=bounds,
-                                  chunksize=chunksize[res],
-                                  xy_coords='center',
-                                  rescale=False,
-                                  dtype=dtype[res],
-                                  fill_value=0)
-        del ds[res].attrs['spec']
+        ds[res] = stackstac.stack(
+            items,
+            assets=assets[res],
+            epsg=f"EPSG:{epsg}",
+            bounds=bounds,
+            chunksize=chunksize[res],
+            xy_coords="center",
+            rescale=False,
+            dtype=dtype[res],
+            fill_value=0,
+        )
+        del ds[res].attrs["spec"]
         ds_vars = list(ds[res].coords.keys())
         drop_vars = [v for v in ds_vars if v not in keep_vars]
         ds[res] = ds[res].drop_vars(drop_vars)
         ds[res] = force_unique_time(ds[res])
 
         # coerce dtypes
-        for v in ['id', 'band', 's2:processing_baseline']:
+        for v in ["id", "band", "s2:processing_baseline"]:
             ds[res][v] = ds[res][v].astype(str)
 
         if res in (10, 20, 60):
@@ -286,26 +318,27 @@ def load_l2a(bounds,
     return ds
 
 
-def preprocess_l2a_cache(ds_dict,
-                         clouds_mask,
-                         start_date,
-                         end_date,
-                         composite_freq=10,
-                         composite_window=20,
-                         composite_mode='median',
-                         reflectance=True,
-                         tmpdir='.'):
-
+def preprocess_l2a_cache(
+    ds_dict,
+    clouds_mask,
+    start_date,
+    end_date,
+    composite_freq=10,
+    composite_window=20,
+    composite_mode="median",
+    reflectance=True,
+    tmpdir=".",
+):
     ds10_block = ds_dict[10]
     ds20_block = ds_dict[20]
     scl20_block = clouds_mask
 
-    timer10 = FeaturesTimer(10, 'l2a')
-    timer20 = FeaturesTimer(20, 'l2a')
+    timer10 = FeaturesTimer(10, "l2a")
+    timer20 = FeaturesTimer(20, "l2a")
 
-    with tempfile.TemporaryDirectory(prefix='ewc_tmp-', dir=tmpdir) as \
-            tmpdirname:
-
+    with tempfile.TemporaryDirectory(
+        prefix="ewc_tmp-", dir=tmpdir
+    ) as tmpdirname:
         # download
         logger.info("Loading block data")
         timer10.load.start()
@@ -315,16 +348,16 @@ def preprocess_l2a_cache(ds_dict,
         timer20.load.start()
         ds20_block = ds20_block.satio.cache(tmpdirname)
         scl20_block = scl20_block.satio.cache(tmpdirname)
-        scl10_block = scl20_block.satio.rescale(scale=2,
-                                                order=0)
+        scl10_block = scl20_block.satio.rescale(scale=2, order=0)
         scl10_block = scl10_block.satio.cache(tmpdirname)
         timer20.load.stop()
 
         # 10m
         # mask clouds
         timer10.composite.start()
-        ds10_block_masked = ds10_block.satio.mask(
-            scl10_block).satio.cache(tmpdirname)
+        ds10_block_masked = ds10_block.satio.mask(scl10_block).satio.cache(
+            tmpdirname
+        )
 
         logger.info("Compositing 10m block data")
         # composite
@@ -332,21 +365,24 @@ def preprocess_l2a_cache(ds_dict,
             freq=composite_freq,
             window=composite_window,
             start=start_date,
-            end=end_date).satio.cache(tmpdirname)
+            end=end_date,
+        ).satio.cache(tmpdirname)
         timer10.composite.stop()
 
         logger.info("Interpolating 10m block data")
         # interpolation
         timer10.interpolate.start()
-        ds10_block_interp = ds10_block_comp.satio.interpolate(
-        ).satio.cache(tmpdirname)
+        ds10_block_interp = ds10_block_comp.satio.interpolate().satio.cache(
+            tmpdirname
+        )
         timer10.interpolate.stop()
 
         # 20m
         # mask
         timer20.composite.start()
-        ds20_block_masked = ds20_block.satio.mask(
-            scl20_block).satio.cache(tmpdirname)
+        ds20_block_masked = ds20_block.satio.mask(scl20_block).satio.cache(
+            tmpdirname
+        )
 
         logger.info("Compositing 20m block data")
         # composite
@@ -354,24 +390,26 @@ def preprocess_l2a_cache(ds_dict,
             freq=composite_freq,
             window=composite_window,
             start=start_date,
-            end=end_date).satio.cache(tmpdirname)
+            end=end_date,
+        ).satio.cache(tmpdirname)
         timer20.composite.stop()
 
         logger.info("Interpolating 20m block data")
         # interpolation
         timer20.interpolate.start()
-        ds20_block_interp = ds20_block_comp.satio.interpolate(
-        ).satio.cache(tmpdirname)
+        ds20_block_interp = ds20_block_comp.satio.interpolate().satio.cache(
+            tmpdirname
+        )
         timer20.interpolate.stop()
 
         logger.info("Merging 10m and 20m series")
         # merging to 10m cleaned data
-        ds20_block_interp_10m = ds20_block_interp.satio.rescale(scale=2,
-                                                                order=1,
-                                                                nodata_value=0)
-        dsm10 = xr.concat([ds10_block_interp,
-                           ds20_block_interp_10m],
-                          dim='band')
+        ds20_block_interp_10m = ds20_block_interp.satio.rescale(
+            scale=2, order=1, nodata_value=0
+        )
+        dsm10 = xr.concat(
+            [ds10_block_interp, ds20_block_interp_10m], dim="band"
+        )
 
         if reflectance:
             dsm10 = dsm10.astype(np.float32) / 10000
@@ -391,21 +429,22 @@ def preprocess_l2a_cache(ds_dict,
     return dsm10
 
 
-def preprocess_l2a(ds_dict,
-                   clouds_mask,
-                   start_date,
-                   end_date,
-                   composite_freq=10,
-                   composite_window=20,
-                   composite_mode='median',
-                   reflectance=True):
-
+def preprocess_l2a(
+    ds_dict,
+    clouds_mask,
+    start_date,
+    end_date,
+    composite_freq=10,
+    composite_window=20,
+    composite_mode="median",
+    reflectance=True,
+):
     ds10_block = ds_dict[10]
     ds20_block = ds_dict[20]
     scl20_block = clouds_mask
 
-    timer10 = FeaturesTimer(10, 'l2a')
-    timer20 = FeaturesTimer(20, 'l2a')
+    timer10 = FeaturesTimer(10, "l2a")
+    timer20 = FeaturesTimer(20, "l2a")
 
     # download
     logger.info("Loading block data")
@@ -416,8 +455,7 @@ def preprocess_l2a(ds_dict,
     timer20.load.start()
     ds20_block = ds20_block.satio.persist_chunk()
     scl20_block = scl20_block.satio.persist_chunk()
-    scl10_block = scl20_block.satio.rescale(scale=2,
-                                            order=0)
+    scl10_block = scl20_block.satio.rescale(scale=2, order=0)
     scl10_block = scl10_block.satio.persist_chunk()
     timer20.load.stop()
 
@@ -425,7 +463,8 @@ def preprocess_l2a(ds_dict,
     # mask clouds
     timer10.composite.start()
     ds10_block_masked = ds10_block.satio.mask(
-        scl10_block).satio.persist_chunk()
+        scl10_block
+    ).satio.persist_chunk()
 
     logger.info("Compositing 10m block data")
     # composite
@@ -434,21 +473,24 @@ def preprocess_l2a(ds_dict,
         window=composite_window,
         mode=composite_mode,
         start=start_date,
-        end=end_date).satio.persist_chunk()
+        end=end_date,
+    ).satio.persist_chunk()
     timer10.composite.stop()
 
     logger.info("Interpolating 10m block data")
     # interpolation
     timer10.interpolate.start()
-    ds10_block_interp = ds10_block_comp.satio.interpolate(
-    ).satio.persist_chunk()
+    ds10_block_interp = (
+        ds10_block_comp.satio.interpolate().satio.persist_chunk()
+    )
     timer10.interpolate.stop()
 
     # 20m
     # mask
     timer20.composite.start()
     ds20_block_masked = ds20_block.satio.mask(
-        scl20_block).satio.persist_chunk()
+        scl20_block
+    ).satio.persist_chunk()
 
     logger.info("Compositing 20m block data")
     # composite
@@ -457,24 +499,24 @@ def preprocess_l2a(ds_dict,
         window=composite_window,
         mode=composite_mode,
         start=start_date,
-        end=end_date).satio.persist_chunk()
+        end=end_date,
+    ).satio.persist_chunk()
     timer20.composite.stop()
 
     logger.info("Interpolating 20m block data")
     # interpolation
     timer20.interpolate.start()
-    ds20_block_interp = ds20_block_comp.satio.interpolate(
-    ).satio.persist_chunk()
+    ds20_block_interp = (
+        ds20_block_comp.satio.interpolate().satio.persist_chunk()
+    )
     timer20.interpolate.stop()
 
     logger.info("Merging 10m and 20m series")
     # merging to 10m cleaned data
-    ds20_block_interp_10m = ds20_block_interp.satio.rescale(scale=2,
-                                                            order=1,
-                                                            nodata_value=0)
-    dsm10 = xr.concat([ds10_block_interp,
-                       ds20_block_interp_10m],
-                      dim='band')
+    ds20_block_interp_10m = ds20_block_interp.satio.rescale(
+        scale=2, order=1, nodata_value=0
+    )
+    dsm10 = xr.concat([ds10_block_interp, ds20_block_interp_10m], dim="band")
 
     if reflectance:
         dsm10 = dsm10.astype(np.float32) / 10000

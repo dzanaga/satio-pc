@@ -1,13 +1,12 @@
 from typing import List
 
-import numpy as np
 import geopandas as gpd
-from shapely.geometry import Polygon
-from shapely.geometry import mapping, shape
-from fiona.transform import transform_geom
-from pyproj.crs import CRS
+import numpy as np
 import rasterio
 import rasterio.mask
+from fiona.transform import transform_geom
+from pyproj.crs import CRS
+from shapely.geometry import Polygon, mapping, shape
 
 import satio_pc
 from satio_pc.layers import load_s2tile_windows
@@ -170,7 +169,7 @@ def get_latlon_grid(deg_resolution: int = 1,
     reduce the grid. (For example providing the landsea layer it will output
     a grid of cells only covering landmass)
     """
-    if (deg_resolution < 1) or not isinstance(int):
+    if (deg_resolution < 1) or not isinstance(deg_resolution, int):
         raise ValueError('`deg_resolution` should be an integer greater '
                          'than 1.')
 
