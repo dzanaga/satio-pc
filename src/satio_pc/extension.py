@@ -20,8 +20,6 @@ from satio_pc.sentinel2 import harmonize, mask_clouds
 from satio_pc.superres import (
     MODELS_NAMES_CV,
     MODELS_NAMES_SUPERIMAGE,
-    SuperImage,
-    SuperResCV,
 )
 
 SUPPORTED_SUPERRES_MODELS = list(MODELS_NAMES_CV.keys()) + list(
@@ -58,6 +56,11 @@ class SatioTimeSeries:
         )
 
     def _load_superres_model(self, model_name):
+        from satio_pc.superres import (
+            SuperImage,
+            SuperResCV,
+        )
+
         model = self._superres_models.get(model_name)
         if model is None:
             if model_name in MODELS_NAMES_CV.keys():
