@@ -17,14 +17,6 @@ from satio_pc.preprocessing.interpolate import interpolate_ts_linear
 from satio_pc.preprocessing.rescale import rescale_ts
 from satio_pc.preprocessing.speckle import multitemporal_speckle_ts
 from satio_pc.sentinel2 import harmonize, mask_clouds
-from satio_pc.superres import (
-    MODELS_NAMES_CV,
-    MODELS_NAMES_SUPERIMAGE,
-)
-
-SUPPORTED_SUPERRES_MODELS = list(MODELS_NAMES_CV.keys()) + list(
-    MODELS_NAMES_SUPERIMAGE.keys()
-)
 
 
 @xr.register_dataarray_accessor("satio")
@@ -57,10 +49,15 @@ class SatioTimeSeries:
 
     def _load_superres_model(self, model_name):
         from satio_pc.superres import (
+            MODELS_NAMES_CV,
+            MODELS_NAMES_SUPERIMAGE,
             SuperImage,
             SuperResCV,
         )
 
+        SUPPORTED_SUPERRES_MODELS = list(MODELS_NAMES_CV.keys()) + list(
+            MODELS_NAMES_SUPERIMAGE.keys()
+        )
         model = self._superres_models.get(model_name)
         if model is None:
             if model_name in MODELS_NAMES_CV.keys():
