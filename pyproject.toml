@@ -44,3 +44,8 @@ dependencies = [
     'xarray',
     'tqdm',
 ]
+
+[[tool.uv.index]]
+name = "vito-artifactory"
+url = "https://artifactory.vgt.vito.be/artifactory/api/pypi/python-packages/simple"
+publish-url = "https://artifactory.vgt.vito.be/artifactory/api/pypi/python-packages-public/"
