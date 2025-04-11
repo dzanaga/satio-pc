@@ -52,7 +52,7 @@ lint = ["ruff>=0.9.0"]
 [[tool.uv.index]]
 name = "vito-artifactory"
 url = "https://artifactory.vgt.vito.be/artifactory/api/pypi/python-packages/simple"
-publish-url = "https://artifactory.vgt.vito.be/artifactory/api/pypi/python-packages-public/"
+publish-url = "https://artifactory.vgt.vito.be/artifactory/api/pypi/python-packages-local/"
 
 [tool.ruff]
 exclude = ["*.ipynb"]
