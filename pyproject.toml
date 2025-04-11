@@ -20,39 +20,40 @@ authors = [
 ]
 description = "Sentinel-2 features processing"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.8"
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    'azure-storage-blob>=12.24',
-    "boto3>=1.11.9",
-    'dask>=2025.1',
-    'dask_image >=2024.5',
-    'geopandas >= 1.0.1',
-    "h5netcdf>=1.5",
-    "loguru>=0.5.3",
-    "numba>=0.48.0",
+    'azure-storage-blob>=12.25',
+    "boto3>=1.37.1",
+    'dask>=2023.5',
+    'dask_image >=2023.3',
+    'geopandas >= 0.13.2',
+    "h5netcdf>=1.1",
+    "loguru>=0.7.3",
+    "numba>=0.58.0",
     'python-dateutil>=2.9',
-    "rasterio>=1.1.1",
+    "rasterio>=1.3.11",
     "rio-cogeo>=5.4.1",
-    "scikit-image>=0.25",
-    'scipy>=1.15',
-    "shapely>=2.0",
-    'stackstac>=0.5',
-    "xarray>=2025.1",
-    "tqdm>=4.60",
-    "numpy<2"
+    "scikit-image>=0.21",
+    'scipy>=1.10.1',
+    "shapely>=2.0.7",
+    'stackstac>=0.5.1',
+    "xarray>=2023.1",
+    "tqdm>=4.67.1",
+    "numpy>=1.24.4, <2"
 ]
 
 [dependency-groups]
-lint = ["ruff>=0.9.0"]
+dev = ["pre-commit>=3.5", "ipython>=8.0", "ruff>=0.11.0"]
 
 [[tool.uv.index]]
 name = "vito-artifactory"
 url = "https://artifactory.vgt.vito.be/artifactory/api/pypi/python-packages/simple"
 publish-url = "https://artifactory.vgt.vito.be/artifactory/api/pypi/python-packages-local/"
+explicit = true
 
 [tool.ruff]
 exclude = ["*.ipynb"]
