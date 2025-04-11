@@ -15,3 +15,6 @@ Check [loading notebook](https://github.com/dzanaga/satio-pc/blob/main/notebooks
 ```bash
 curl -u steliosvito:*** https://artifactory.vgt.vito.be/artifactory/api/pypi/python-packages/simple/satio-pc/ | tee satio.log
 ```
+
+## Private artifactory
+From version 0.0.15 the package exists in python-packages-local artifactory
